@@ -1,0 +1,28 @@
+comment: false
+github_checks:
+  annotations: true
+
+coverage:
+  precision: 2
+  range: '20...60'
+  round: down
+  status:
+    changes: false
+    patch:
+      default:
+        informational: true
+    project:
+      default:
+        target: auto
+        threshold: 5%
+
+flags:
+  caslon:
+    paths:
+      - packages/caslon/
+  preset-unocss:
+    paths:
+      - packages/preset-unocss/
+  utopia:
+    paths:
+      - packages/utopia/

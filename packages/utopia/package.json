@@ -1,0 +1,55 @@
+{
+  "name": "@caslon/utopia",
+  "version": "0.0.0",
+  "author": {
+    "name": "escapace",
+    "email": "opensource@escapace.com"
+  },
+  "bugs": "https://github.com/escapace/caslon/issues",
+  "devDependencies": {
+    "@ls-lint/ls-lint": "2.2.3",
+    "@vitest/coverage-v8": "3.0.7",
+    "eslint": "9.21.0",
+    "eslint-config-escapace": "5.4.6",
+    "esroll": "0.4.1",
+    "prettier": "3.5.2",
+    "prettier-config-escapace": "1.2.1",
+    "syncpack": "13.0.2",
+    "tsx": "4.19.3",
+    "typescript": "5.8.2",
+    "vitest": "3.0.7"
+  },
+  "engines": {
+    "pnpm": ">=10.4.1"
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "import": "./lib/neutral/index.js"
+    }
+  },
+  "files": [
+    "lib/neutral",
+    "lib/types"
+  ],
+  "homepage": "https://github.com/escapace/caslon/tree/trunk/packages/utopia#readme",
+  "license": "MPL-2.0",
+  "module": "lib/neutral/index.js",
+  "private": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "repository": "escapace/caslon",
+  "scripts": {
+    "build": "tsx scripts/build.ts",
+    "format": "syncpack format --source package.json && eslint --no-warn-ignored --fix && prettier -uw .",
+    "lint": "ls-lint --config .ls-lint.yaml && eslint",
+    "ls-lint": "ls-lint --config .ls-lint.yaml",
+    "test": "vitest --no-watch --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "types": "lib/types/index.d.ts"
+}

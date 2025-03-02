@@ -1,0 +1,59 @@
+{
+  "name": "@caslon/monorepo",
+  "version": "0.0.0",
+  "author": {
+    "name": "escapace",
+    "email": "opensource@escapace.com"
+  },
+  "bugs": "https://github.com/escapace/caslon/issues",
+  "devDependencies": {
+    "@commitlint/cli": "19.7.1",
+    "@commitlint/config-conventional": "19.7.1",
+    "@escapace/pnpm-pack": "0.6.0",
+    "@ls-lint/ls-lint": "2.2.3",
+    "eslint": "9.21.0",
+    "eslint-config-escapace": "5.4.6",
+    "knip": "5.45.0",
+    "lefthook": "1.11.2",
+    "prettier": "3.5.2",
+    "prettier-config-escapace": "1.2.1",
+    "syncpack": "13.0.2"
+  },
+  "engines": {
+    "pnpm": ">=10.4.1"
+  },
+  "files": [
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml"
+  ],
+  "homepage": "https://github.com/escapace/caslon#readme",
+  "license": "MPL-2.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "lefthook"
+    ]
+  },
+  "private": true,
+  "repository": "escapace/caslon",
+  "scripts": {
+    "build": "pnpm run workspaces:build",
+    "format": "syncpack format --source package.json && eslint --ignore-pattern packages --no-warn-ignored --fix && prettier -uw !packages . && pnpm run workspaces:format",
+    "lint": "ls-lint --config .ls-lint.yaml && knip --no-config-hints && eslint --ignore-pattern packages && pnpm run workspaces:lint",
+    "ls-lint": "ls-lint --config .ls-lint.yaml && pnpm run workspaces:ls-lint",
+    "pack": "pnpm-pack workspace",
+    "prepare": "lefthook install",
+    "syncpack": "syncpack fix-mismatches && syncpack set-semver-ranges && syncpack format",
+    "test": "pnpm run workspaces:test",
+    "typecheck": "pnpm run workspaces:typecheck",
+    "workspaces:build": "pnpm run --if-present --workspace-concurrency=4 -r --filter '*' build",
+    "workspaces:format": "pnpm run --if-present --workspace-concurrency=4 -r --filter '*' format",
+    "workspaces:lint": "pnpm run --if-present --workspace-concurrency=4 -r --filter '*' lint",
+    "workspaces:ls-lint": "pnpm run --if-present --workspace-concurrency=4 -r --filter '*' ls-lint",
+    "workspaces:test": "pnpm run --if-present --workspace-concurrency=4 -r --filter '*' test",
+    "workspaces:typecheck": "pnpm run --if-present --workspace-concurrency=4 -r --filter '*' typecheck",
+    "workspaces:update": "pnpm --workspace-concurrency=4 -w -r --filter '*' exec ncu -u --dep prod,dev,peer,optional && pnpm run syncpack"
+  },
+  "sideEffects": false,
+  "type": "module"
+}
