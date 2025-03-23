@@ -1,0 +1,3 @@
+[submodule "packages/preset-unocss/vendor/tailwindcss"]
+	path = packages/preset-unocss/vendor/tailwindcss
+	url = https://github.com/tailwindlabs/tailwindcss.git

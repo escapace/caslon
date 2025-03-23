@@ -1,0 +1,1 @@
+../../vendor/tailwindcss/packages/tailwindcss/src/property-order.ts

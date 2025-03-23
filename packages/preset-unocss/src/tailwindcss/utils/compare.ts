@@ -1,0 +1,1 @@
+../../../vendor/tailwindcss/packages/tailwindcss/src/utils/compare.ts

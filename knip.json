@@ -10,7 +10,13 @@
     "src/index.ts!",
     "src/types.ts"
   ],
-  "ignore": ["**/*.d.+([a-zA-Z0-9]).ts", "**/*.d.ts", "lib/**"],
+  "ignore": [
+    "**/*.d.+([a-zA-Z0-9]).ts",
+    "**/*.d.ts",
+    "lib/**",
+    "packages/preset-unocss/vendor/**",
+    "packages/preset-unocss/src/tailwindcss/**"
+  ],
   "ignoreBinaries": ["ncu"],
   "ignoreDependencies": [
     "@commitlint/cli",

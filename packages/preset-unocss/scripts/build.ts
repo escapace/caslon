@@ -27,6 +27,7 @@ for (const value of Object.values(constants.builds)) {
       ...Object.keys(packageJSON.dependencies ?? []),
       ...Object.keys(packageJSON.peerDependencies ?? []),
     ],
+    preserveSymlinks: true,
     sourcemap: true,
     sourcesContent: false,
     splitting: true,
