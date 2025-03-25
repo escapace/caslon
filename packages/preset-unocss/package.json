@@ -7,10 +7,10 @@
   },
   "bugs": "https://github.com/escapace/caslon/issues",
   "dependencies": {
-    "@unocss/core": "66.1.0-beta.6"
+    "@tailwindcss/oxide": "^4.0.15",
+    "magic-string": "^0.30.17"
   },
   "devDependencies": {
-    "@escapace/sequentialize": "4.0.0",
     "@ls-lint/ls-lint": "2.2.3",
     "@types/node": "22.13.10",
     "@vitest/coverage-v8": "3.0.9",
@@ -22,6 +22,7 @@
     "syncpack": "13.0.3",
     "tsx": "4.19.3",
     "typescript": "5.8.2",
+    "vite": "6.2.2",
     "vitest": "3.0.9"
   },
   "engines": {
