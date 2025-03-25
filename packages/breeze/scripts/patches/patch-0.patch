@@ -1,0 +1,50 @@
+diff --git i/packages/tailwindcss/src/utilities.ts w/packages/tailwindcss/src/utilities.ts
+index 587dc2d5..260a1cf0 100644
+--- i/packages/tailwindcss/src/utilities.ts
++++ w/packages/tailwindcss/src/utilities.ts
+@@ -168,6 +168,28 @@ export function asColor(
+   return withAlpha(value, `${modifier.value}%`)
+ }
+ 
++const CEPHEUS_REGEX = /^(([a-z]+)|(\d+))(-(\d{1,3})-(\d{1,3}))?([-/](\d{1,2}|100))?$/i
++
++export const resolveCepheusColor = (value: Exclude<Extract<Candidate, { kind: 'functional' }>['value'], null>) => {
++  let result: string | null = null
++
++  if (value.kind === 'arbitrary') {
++    if (CEPHEUS_REGEX.test(value.value)) {
++      result = value.value
++    }
++  } else if (typeof value.fraction === 'string' && CEPHEUS_REGEX.test(value.fraction)) {
++    result = value.fraction.replace('/', '-')
++  } else if (CEPHEUS_REGEX.test(value.value)) {
++    result = value.value
++  }
++
++  if (result === null) {
++    return result
++  }
++
++  return `var(---color-${result})`
++}
++
+ /**
+  * Finds a color in the theme under one of the given theme keys that matches
+  * `candidateValue`.
+@@ -207,10 +229,16 @@ function resolveThemeColor<T extends ThemeKey>(
+     }
+     default: {
+       value = theme.resolve(candidate.value!.value, themeKeys)
++
++      if (value === null) {
++        value = resolveCepheusColor(candidate.value!)
++      }
++
+       break
+     }
+   }
+ 
++
+   return value ? asColor(value, candidate.modifier, theme) : null
+ }
+ 

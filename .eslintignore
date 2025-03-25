@@ -1,5 +1,5 @@
 coverage
 lib
 pnpm-lock.yaml
-/packages/preset-unocss/vendor/**
-/packages/preset-unocss/src/tailwindcss/**
+/packages/breeze/vendor/**
+/packages/breeze/src/tailwindcss/**
