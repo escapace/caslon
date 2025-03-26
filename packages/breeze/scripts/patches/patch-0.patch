@@ -1,8 +1,8 @@
 diff --git i/packages/tailwindcss/src/utilities.ts w/packages/tailwindcss/src/utilities.ts
-index 587dc2d5..260a1cf0 100644
+index 84b5d61c..465724d7 100644
 --- i/packages/tailwindcss/src/utilities.ts
 +++ w/packages/tailwindcss/src/utilities.ts
-@@ -168,6 +168,28 @@ export function asColor(
+@@ -205,6 +205,28 @@ export function asColor(
    return withAlpha(value, `${modifier.value}%`)
  }
  
@@ -31,7 +31,7 @@ index 587dc2d5..260a1cf0 100644
  /**
   * Finds a color in the theme under one of the given theme keys that matches
   * `candidateValue`.
-@@ -207,10 +229,16 @@ function resolveThemeColor<T extends ThemeKey>(
+@@ -244,10 +266,16 @@ function resolveThemeColor<T extends ThemeKey>(
      }
      default: {
        value = theme.resolve(candidate.value!.value, themeKeys)

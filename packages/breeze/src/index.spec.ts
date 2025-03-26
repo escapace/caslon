@@ -1,10 +1,11 @@
 import { assert, describe, expect, it } from 'vitest'
-import { Compiler } from './compiler'
+import { Compiler } from './index'
 
 describe('compiler', () => {
   it('.', async () => {
     const compiler = new Compiler()
-    await compiler.reset(`
+    await compiler.reset({
+      theme: `
 body {
   background-color: black;
 }
@@ -14,7 +15,8 @@ body {
     tab-size: 4;
   }
 }
-`)
+`,
+    })
 
     expect(
       compiler.compile([
@@ -31,7 +33,7 @@ body {
 
   it('.', async () => {
     const compiler = new Compiler()
-    await compiler.reset('')
+    await compiler.reset({})
 
     assert.equal(compiler.compile(['nonexistent']), undefined)
     assert.equal(compiler.compile([]), undefined)
@@ -39,14 +41,18 @@ body {
 
   it('.', async () => {
     const compiler = new Compiler()
-    await compiler.reset(`
-@utility content-auto {
+    await compiler.reset({
+      theme: `
+@utility content-auto-test {
   content-visibility: auto;
 }
 
-@custom-variant pointer-coarse (@media (pointer: coarse));
-`)
+@custom-variant pointer-coarse-test (@media (pointer: coarse));
+`,
+    })
 
-    expect(compiler.compile(['content-auto', 'pointer-coarse:relative'])).toMatchSnapshot()
+    expect(
+      compiler.compile(['content-auto-test', 'pointer-coarse-test:relative']),
+    ).toMatchSnapshot()
   })
 })

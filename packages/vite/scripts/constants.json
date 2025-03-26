@@ -1,16 +1,15 @@
 {
   "builds": {
-    "neutral": {
+    "node": {
       "define": {
         "__ENVIRONMENT__": "\"production\"",
-        "__PLATFORM__": "\"neutral\""
+        "__PLATFORM__": "\"node\""
       },
       "entryPoints": ["src/index.ts"],
       "mainFields": ["module", "main"],
-      "outdir": "lib/neutral",
-      "platform": "neutral",
-      "preserveSymlinks": true,
-      "target": ["es2020"]
+      "outdir": "lib/node",
+      "platform": "node",
+      "target": ["node22.13.1"]
     }
   }
 }

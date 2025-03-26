@@ -1,138 +1,227 @@
-import { Scanner } from '@tailwindcss/oxide'
-import MagicString from 'magic-string'
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
-import type { Plugin, ResolvedConfig, TransformResult } from 'vite'
-import { Compiler } from './compiler'
-import fs, { readFile } from 'node:fs/promises'
+/* eslint-disable typescript/no-non-null-assertion */
+import { atRule, decl, optimizeAst, styleRule, toCss, walk, type AstNode } from './tailwindcss/ast'
+import type { Candidate } from './tailwindcss/candidate'
+import type { DesignSystem } from './tailwindcss/design-system'
+import { ThemeOptions } from './tailwindcss/theme'
+import { escape } from './tailwindcss/utils/escape'
+import { DEFAULT_THEME } from './theme'
+import { parseCss } from './utilities/css-parse'
+import { sortAstNodes } from './utilities/sort-ast-nodes'
 
-export const isFile = async (path: string) =>
-  await fs
-    .stat(path)
-    .then((stats) => stats.isFile())
-    .catch(() => false)
-
-// TODO: filter / unplugin-util
-// TODO: scoped
-
-interface Options {
+export interface Options {
   theme?: string
+  themeSelector?: string
 }
 
-export function caslon(options?: Options): Plugin {
-  let config: ResolvedConfig
-  let pathFileTheme: string
+export class Compiler {
+  public designSystem!: DesignSystem
+  public options!: Pick<Options, 'theme'> & Required<Pick<Options, 'themeSelector'>>
+  public themeAst!: AstNode[]
 
-  const compiler = new Compiler()
-
-  function transformSFC(filename: string): TransformResult | undefined {
-    const pathWorkingDirectory = config.root
-
-    const pattern = path.isAbsolute(filename)
-      ? path.relative(pathWorkingDirectory, filename)
-      : filename
-    const source = readFileSync(filename, 'utf8')
-
-    const scanner = new Scanner({ sources: [{ base: pathWorkingDirectory, pattern }] })
-    const candidates = scanner.scan()
-
-    if (candidates.length === 0) {
-      return undefined
+  async reset(options: Options = {}) {
+    this.options = {
+      ...options,
+      themeSelector: options.themeSelector ?? ':where(:root,:host,::backdrop,::selection)',
     }
 
-    const css = compiler.compile(candidates)
+    const { ast, designSystem } = await parseCss(
+      [DEFAULT_THEME, this.options.theme].filter((value) => value !== undefined).join('\n'),
+    )
 
-    if (css === undefined) {
-      return undefined
-    }
-
-    const magic = new MagicString(source)
-
-    magic.append(`\n<style>\n${css}\n</style>`)
-
-    return {
-      code: magic.toString(),
-      map: null,
-    }
+    this.designSystem = designSystem
+    this.themeAst = ast
   }
 
-  const reset = async () => {
-    console.log('1resetting!!!')
-    console.log('2resetting!!!')
-    console.log('3resetting!!!')
+  private createAstNodes(matches: Map<string, Candidate[]>) {
+    const nodeSorting = new Map<
+      AstNode,
+      { candidate: string; properties: { count: number; order: number[] }; variants: bigint }
+    >()
+    const astNodes: AstNode[] = []
 
-    await compiler.reset(
-      (await isFile(pathFileTheme)) ? await readFile(pathFileTheme, 'utf8') : undefined,
+    const variantOrderMap = this.designSystem.getVariantOrder()
+
+    for (const [rawCandidate, candidates] of matches) {
+      let found = false
+
+      for (const candidate of candidates) {
+        const rules = this.designSystem.compileAstNodes(candidate)
+        if (rules.length === 0) continue
+
+        found = true
+
+        for (const { node, propertySort } of rules) {
+          // Track the variant order which is a number with each bit representing a
+          // variant. This allows us to sort the rules based on the order of
+          // variants used.
+          let variantOrder = 0n
+          for (const variant of candidate.variants) {
+            variantOrder |= 1n << BigInt(variantOrderMap.get(variant)!)
+          }
+
+          nodeSorting.set(node, {
+            candidate: rawCandidate,
+            properties: propertySort,
+            variants: variantOrder,
+          })
+
+          astNodes.push(node)
+        }
+      }
+
+      if (!found) {
+        this.designSystem.invalidCandidates.add(rawCandidate)
+        // onInvalidCandidate?.(rawCandidate)
+      }
+    }
+
+    sortAstNodes(astNodes, nodeSorting)
+
+    // for (const keyframes of this.designSystem.theme.getKeyframes()) {
+    //   // Wrap `@keyframes` in `AtRoot` so they are hoisted out of `:root` when
+    //   // printing. We push it to the top-level of the AST so that an eventual
+    //   // `@reference` does not cut it out when printing the document.
+    //   astNodes.unshift(context({ theme: true }, [atRoot([keyframes])]))
+    // }
+
+    // astNodes.unshift(...this.themeAst)
+
+    return optimizeAst(
+      [...this.themeAst, atRule('@layer', 'utilities', astNodes)],
+      this.designSystem,
     )
   }
 
-  return {
-    async buildStart() {
-      this.addWatchFile(pathFileTheme)
-      await reset()
-    },
-    configResolved(resolvedConfig) {
-      config = resolvedConfig
-      pathFileTheme = path.resolve(config.root, options?.theme ?? 'src/styles/theme.css')
-    },
-    load: {
-      async handler(id) {
-        if (id === pathFileTheme) {
-          await reset()
+  private splitAstNodes(astNodes: AstNode[]): {
+    keyframes: AstNode[]
+    properties: AstNode[]
+    theme: AstNode[]
+    utilities: AstNode[]
+  } {
+    const utilities: AstNode[] = []
+    const properties: AstNode[] = []
+    const theme: AstNode[] = []
+    const keyframes: AstNode[] = []
 
-          return { code: '', moduleSideEffects: false }
-        }
+    walk(astNodes, (value, tools) => {
+      if (value.kind === 'at-rule' && value.name === '@property') {
+        properties.push(value)
+        tools.replaceWith([])
+      }
+    })
 
-        if (!id.endsWith('.vue')) {
-          return
-        }
+    for (const [key, value] of this.designSystem.theme.entries()) {
+      // eslint-disable-next-line typescript/strict-boolean-expressions
+      if (value.options & ThemeOptions.USED) {
+        theme.push(decl(escape(key), value.value))
+      }
+    }
 
-        return transformSFC(id)
-      },
-      order: 'pre',
-    },
-    name: '@caslon/vite',
+    walk(astNodes, (value, tools) => {
+      if (value.kind === 'at-rule' && value.name === '@keyframes') {
+        keyframes.push(value)
+        tools.replaceWith([])
+      }
+    })
+
+    walk(astNodes, (value, tools) => {
+      if (value.kind === 'rule' && value.selector === 'REMOVE_THIS') {
+        tools.replaceWith([])
+      }
+    })
+
+    walk(astNodes, (value, tools) => {
+      if (value.kind === 'at-rule' && value.name === '@layer' && value.params === 'utilities') {
+        utilities.push(value)
+        tools.replaceWith([])
+      }
+    })
+
+    return {
+      keyframes,
+      properties,
+      theme: [
+        atRule(
+          '@layer',
+          'theme',
+          theme.length === 0 ? theme : [styleRule(this.options.themeSelector, theme)],
+        ),
+      ],
+      utilities,
+    }
+  }
+
+  public compile(rawCandidates: string[]) {
+    const matches = new Map<string, Candidate[]>()
+
+    for (const rawCandidate of rawCandidates) {
+      if (this.designSystem.invalidCandidates.has(rawCandidate)) {
+        // onInvalidCandidate?.(rawCandidate)
+        continue // Bail, invalid candidate
+      }
+
+      const candidates = this.designSystem.parseCandidate(rawCandidate)
+      if (candidates.length === 0) {
+        this.designSystem.invalidCandidates.add(rawCandidate)
+        // onInvalidCandidate?.(rawCandidate)
+        continue // Bail, invalid candidate
+      }
+
+      matches.set(rawCandidate, candidates)
+    }
+
+    if (matches.size === 0) {
+      return
+    }
+
+    const astNodes = this.createAstNodes(matches)
+
+    if (astNodes.length === 0) {
+      return
+    }
+
+    const layers = this.splitAstNodes(astNodes)
+
+    // this.toCss(ast, layer)
+    const array = (
+      ['theme', 'utilities', 'properties', 'keyframes'] satisfies Array<keyof typeof layers>
+    )
+      .map((layer) => [layer, toCss(layers[layer])])
+      .filter((value): value is [keyof typeof layers, string] => value[1] !== undefined)
+      .map((value) => value[1])
+
+    return array.length === 0 ? undefined : array.join('\n')
   }
 }
 
-// let filter = createFilter([/\.vue$/], defaultPipelineExclude)
-// enforce: 'pre',
-// import { parseVueRequest } from '@vitejs/plugin-vue'
-// const { filename, query } = parseVueRequest(id)
+// export const presetCaslon = definePreset(() => {
+//   const preset = new PresetCaslon()
 //
-// if (Object.keys(query).length !== 0) {
-//   return undefined
-// }
-//
-// console.log(filename, query)
-//
-// if (!(query.vue === true && typeof query.src === 'string')) {
-//   return
-// }
+//   return {
+//     autocomplete: {
+//       templates: preset.designSystem.getClassList().map(([value]) => value),
+//     },
+//     configResolved(options) {
+//       if (options.outputToCssLayers === true || typeof options.outputToCssLayers === 'object') {
+//         throw new Error(`@caslon/preset-unocss: outputToCssLayers is not supported.`)
+//       }
+//     },
+//     layers: {
+//       keyframes: 150,
+//       properties: 100,
+//       theme: -150,
+//       utilities: 0,
+//     },
+//     name: '@caslon/preset-unocss',
+//     // options,
+//     preflights: preset.preflights(),
+//     rules: [preset.createRule()],
+//     theme: {},
+//   } satisfies Preset
+// })
 
-// shouldTransformCachedModule({ id }) {
-//   return id.includes('.vue')
-//   // return false
-//   // `vite build --watch`
-//   // always transform cached modules for vue sfc
-//   // if (
-//   //   config.command === 'build' &&
-//   //   config.build.watch !== null &&
-//   //   config.build.sourcemap !== false &&
-//   //   id.includes('.vue')
-//   // ) {
-//   //   return true
-//   // }
-//   // return false
-// },
-// transform(code, id) {
-// },
-// handleHotUpdate(ctx) {
-//   const read = ctx.read
-//   if (filter(ctx.file)) {
-//     ctx.read = async () => {
-//       const code = await read()
-//       return await transformSFC(code) || code
-//     }
-//   }
-// },
+// // @ts-expect-error private
+// const mapUtilities = designSystem.utilities.utilities
+// const mapVariants = designSystem.variants.variants
+
+// ./../vendor/tailwindcss/packages/tailwindcss/theme.css

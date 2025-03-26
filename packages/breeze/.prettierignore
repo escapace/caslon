@@ -1,5 +1,5 @@
+/src/tailwindcss/**
+/vendor/**
 coverage
 lib
 pnpm-lock.yaml
-/src/tailwindcss/**
-/vendor/**

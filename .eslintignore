@@ -1,5 +1,5 @@
+/packages/breeze/src/tailwindcss/**
+/packages/breeze/vendor/**
 coverage
 lib
 pnpm-lock.yaml
-/packages/breeze/vendor/**
-/packages/breeze/src/tailwindcss/**

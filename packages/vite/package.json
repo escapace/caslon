@@ -1,11 +1,16 @@
 {
-  "name": "@caslon/breeze",
+  "name": "@caslon/vite",
   "version": "0.0.0",
   "author": {
     "name": "escapace",
     "email": "opensource@escapace.com"
   },
   "bugs": "https://github.com/escapace/caslon/issues",
+  "dependencies": {
+    "@caslon/breeze": "workspace:*",
+    "@tailwindcss/oxide": "^4.0.17",
+    "magic-string": "^0.30.17"
+  },
   "devDependencies": {
     "@ls-lint/ls-lint": "2.2.3",
     "@types/node": "22.13.13",
@@ -18,25 +23,26 @@
     "syncpack": "13.0.3",
     "tsx": "4.19.3",
     "typescript": "5.8.2",
-    "vitest": "3.0.9",
-    "zx": "8.4.1"
+    "vite": "6.2.3",
+    "vitest": "3.0.9"
   },
   "engines": {
+    "node": ">=22.13.1",
     "pnpm": ">=10.4.1"
   },
   "exports": {
     ".": {
       "types": "./lib/types/index.d.ts",
-      "import": "./lib/neutral/index.js"
+      "import": "./lib/node/index.js"
     }
   },
   "files": [
-    "lib/neutral",
+    "lib/node",
     "lib/types"
   ],
-  "homepage": "https://github.com/escapace/caslon/tree/trunk/packages/breeze#readme",
-  "license": "MIT",
-  "module": "lib/neutral/index.js",
+  "homepage": "https://github.com/escapace/caslon/tree/trunk/packages/vite#readme",
+  "license": "MPL-2.0",
+  "module": "./lib/node/index.js",
   "private": false,
   "publishConfig": {
     "access": "public",
@@ -44,8 +50,7 @@
   },
   "repository": "escapace/caslon",
   "scripts": {
-    "build": "pnpm run codegen && tsx scripts/build.ts",
-    "codegen": "tsx scripts/codegen.ts",
+    "build": "tsx scripts/build.ts",
     "format": "syncpack format --source package.json && eslint --no-warn-ignored --fix && prettier -uw .",
     "lint": "ls-lint --config .ls-lint.yaml && eslint",
     "ls-lint": "ls-lint --config .ls-lint.yaml",
@@ -54,5 +59,5 @@
   },
   "sideEffects": false,
   "type": "module",
-  "types": "lib/types/index.d.ts"
+  "types": "./lib/types/index.d.ts"
 }

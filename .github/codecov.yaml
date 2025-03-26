@@ -17,12 +17,15 @@ coverage:
         threshold: 5%
 
 flags:
+  breeze:
+    paths:
+      - packages/breeze/
   caslon:
     paths:
       - packages/caslon/
-  preset-unocss:
-    paths:
-      - packages/preset-unocss/
   utopia:
     paths:
       - packages/utopia/
+  vite:
+    paths:
+      - packages/vite/

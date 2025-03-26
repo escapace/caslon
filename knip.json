@@ -14,8 +14,8 @@
     "**/*.d.+([a-zA-Z0-9]).ts",
     "**/*.d.ts",
     "lib/**",
-    "packages/breeze/vendor/**",
-    "packages/breeze/src/tailwindcss/**"
+    "packages/breeze/src/tailwindcss/**",
+    "packages/breeze/vendor/**"
   ],
   "ignoreBinaries": ["ncu"],
   "ignoreDependencies": [

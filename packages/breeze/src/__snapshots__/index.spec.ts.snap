@@ -2,7 +2,9 @@
 
 exports[`compiler > . 1`] = `
 "@layer theme {
-  --animate-spin: spin 1s linear infinite;
+  :where(:root,:host,::backdrop,::selection) {
+    --animate-spin: spin 1s linear infinite;
+  }
 }
 
 @layer utilities {
@@ -78,10 +80,10 @@ exports[`compiler > . 2`] = `
 "@layer theme;
 
 @layer utilities {
-  .content-auto {
+  .content-auto-test {
     content-visibility: auto;
   }
-  .pointer-coarse\\:relative {
+  .pointer-coarse-test\\:relative {
     @media (pointer: coarse) {
       position: relative;
     }
