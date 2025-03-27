@@ -55,4 +55,12 @@ body {
       compiler.compile(['content-auto-test', 'pointer-coarse-test:relative']),
     ).toMatchSnapshot()
   })
+
+  it('.', async () => {
+    const compiler = new Compiler()
+    await compiler.reset()
+
+    expect(compiler.compile(['animate-spin', 'rounded-xl'])).toMatchSnapshot()
+    expect(compiler.compile(['relative'])).toMatchSnapshot()
+  })
 })

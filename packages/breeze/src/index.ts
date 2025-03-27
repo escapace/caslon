@@ -17,6 +17,7 @@ export class Compiler {
   public designSystem!: DesignSystem
   public options!: Pick<Options, 'theme'> & Required<Pick<Options, 'themeSelector'>>
   public themeAst!: AstNode[]
+  public themeValues!: ReadonlyArray<[string, { options: ThemeOptions; value: string }]>
 
   async reset(options: Options = {}) {
     this.options = {
@@ -28,11 +29,17 @@ export class Compiler {
       [DEFAULT_THEME, this.options.theme].filter((value) => value !== undefined).join('\n'),
     )
 
+    // @ts-expect-error private
+    this.themeValues = Array.from(designSystem.theme.values.entries())
+
     this.designSystem = designSystem
     this.themeAst = ast
   }
 
   private createAstNodes(matches: Map<string, Candidate[]>) {
+    // @ts-expect-error private
+    this.designSystem.theme.values = new Map(structuredClone(this.themeValues))
+
     const nodeSorting = new Map<
       AstNode,
       { candidate: string; properties: { count: number; order: number[] }; variants: bigint }
@@ -86,13 +93,18 @@ export class Compiler {
 
     // astNodes.unshift(...this.themeAst)
 
+    // console.log(JSON.stringify(this.themeAst, null, 2))
+
     return optimizeAst(
-      [...this.themeAst, atRule('@layer', 'utilities', astNodes)],
+      [...structuredClone(this.themeAst), atRule('@layer', 'utilities', astNodes)],
       this.designSystem,
     )
   }
 
-  private splitAstNodes(astNodes: AstNode[]): {
+  private splitAstNodes(
+    astNodes: AstNode[],
+    options?: Partial<Pick<Options, 'themeSelector'>>,
+  ): {
     keyframes: AstNode[]
     properties: AstNode[]
     theme: AstNode[]
@@ -144,14 +156,16 @@ export class Compiler {
         atRule(
           '@layer',
           'theme',
-          theme.length === 0 ? theme : [styleRule(this.options.themeSelector, theme)],
+          theme.length === 0
+            ? theme
+            : [styleRule(options?.themeSelector ?? this.options.themeSelector, theme)],
         ),
       ],
       utilities,
     }
   }
 
-  public compile(rawCandidates: string[]) {
+  public compile(rawCandidates: string[], options?: Partial<Pick<Options, 'themeSelector'>>) {
     const matches = new Map<string, Candidate[]>()
 
     for (const rawCandidate of rawCandidates) {
@@ -180,7 +194,7 @@ export class Compiler {
       return
     }
 
-    const layers = this.splitAstNodes(astNodes)
+    const layers = this.splitAstNodes(astNodes, options)
 
     // this.toCss(ast, layer)
     const array = (

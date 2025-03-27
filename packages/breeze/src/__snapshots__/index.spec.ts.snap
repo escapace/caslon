@@ -93,3 +93,42 @@ exports[`compiler > . 2`] = `
 
 "
 `;
+
+exports[`compiler > . 3`] = `
+"@layer theme {
+  :where(:root,:host,::backdrop,::selection) {
+    --radius-xl: 0.75rem;
+    --animate-spin: spin 1s linear infinite;
+  }
+}
+
+@layer utilities {
+  .animate-spin {
+    animation: var(--animate-spin);
+  }
+  .rounded-xl {
+    border-radius: var(--radius-xl);
+  }
+}
+
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+"
+`;
+
+exports[`compiler > . 4`] = `
+"@layer theme;
+
+@layer utilities {
+  .relative {
+    position: relative;
+  }
+}
+
+
+"
+`;

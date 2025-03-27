@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import * as zx from 'zx'
 import { $ } from 'zx'
 
-const TAILWINDS_REF = 'main'
+const TAILWINDS_REF = 'eecb6f7476e8176a82370138aa5f61cd3be6abe1'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -20,7 +20,7 @@ $.cwd = pathDirectoryTailwinds
 $.stdio = 'inherit'
 
 await $`git fetch`
-await $`git reset --hard origin/${TAILWINDS_REF}`
+await $`git reset --hard ${TAILWINDS_REF}`
 await $`git clean -f -d x`
 
 const collator = Intl.Collator('en', { numeric: true })
