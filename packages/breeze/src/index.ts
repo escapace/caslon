@@ -1,17 +1,35 @@
 /* eslint-disable typescript/no-non-null-assertion */
-import { atRule, decl, optimizeAst, styleRule, toCss, walk, type AstNode } from './tailwindcss/ast'
+import { substituteAtApply } from './tailwindcss/apply'
+import {
+  toCss as _toCss,
+  atRule,
+  decl,
+  optimizeAst,
+  styleRule,
+  walk,
+  type AstNode,
+} from './tailwindcss/ast'
 import type { Candidate } from './tailwindcss/candidate'
+import { substituteFunctions } from './tailwindcss/css-functions'
+import { parse } from './tailwindcss/css-parser'
 import type { DesignSystem } from './tailwindcss/design-system'
 import { ThemeOptions } from './tailwindcss/theme'
 import { escape } from './tailwindcss/utils/escape'
 import { DEFAULT_THEME } from './theme'
 import { parseCss } from './utilities/css-parse'
 import { sortAstNodes } from './utilities/sort-ast-nodes'
+import { substituteAtVariant } from './utilities/substitute-at-variant'
 
+// TODO: move themeSelector to theme
 export interface Options {
   theme?: string
   themeSelector?: string
 }
+
+const toCss = (value: AstNode[]) =>
+  value.length === 0 || value.every((value) => value.kind === 'at-rule' && value.nodes.length === 0)
+    ? undefined
+    : _toCss(value)
 
 export class Compiler {
   public designSystem!: DesignSystem
@@ -36,10 +54,7 @@ export class Compiler {
     this.themeAst = ast
   }
 
-  private createAstNodes(matches: Map<string, Candidate[]>) {
-    // @ts-expect-error private
-    this.designSystem.theme.values = new Map(structuredClone(this.themeValues))
-
+  private compileAstNodes(matches: Map<string, Candidate[]>) {
     const nodeSorting = new Map<
       AstNode,
       { candidate: string; properties: { count: number; order: number[] }; variants: bigint }
@@ -101,7 +116,7 @@ export class Compiler {
     )
   }
 
-  private splitAstNodes(
+  private compileLayers(
     astNodes: AstNode[],
     options?: Partial<Pick<Options, 'themeSelector'>>,
   ): {
@@ -165,7 +180,20 @@ export class Compiler {
     }
   }
 
-  public compile(rawCandidates: string[], options?: Partial<Pick<Options, 'themeSelector'>>) {
+  private transformStyle(css: string) {
+    const ast = parse(css)
+
+    substituteAtVariant(ast, this.designSystem)
+    substituteFunctions(ast, this.designSystem)
+    substituteAtApply(ast, this.designSystem)
+
+    return toCss(optimizeAst(ast, this.designSystem))
+  }
+
+  private candidatesToCss(
+    rawCandidates: string[],
+    options?: Partial<Pick<Options, 'themeSelector'>>,
+  ) {
     const matches = new Map<string, Candidate[]>()
 
     for (const rawCandidate of rawCandidates) {
@@ -184,19 +212,18 @@ export class Compiler {
       matches.set(rawCandidate, candidates)
     }
 
-    if (matches.size === 0) {
-      return
-    }
+    // if (matches.size === 0) {
+    //   return
+    // }
 
-    const astNodes = this.createAstNodes(matches)
+    const astNodes = this.compileAstNodes(matches)
 
     if (astNodes.length === 0) {
       return
     }
 
-    const layers = this.splitAstNodes(astNodes, options)
+    const layers = this.compileLayers(astNodes, options)
 
-    // this.toCss(ast, layer)
     const array = (
       ['theme', 'utilities', 'properties', 'keyframes'] satisfies Array<keyof typeof layers>
     )
@@ -206,36 +233,18 @@ export class Compiler {
 
     return array.length === 0 ? undefined : array.join('\n')
   }
+
+  public compile(
+    candidates: string[],
+    styles: string[] = [],
+    options?: Partial<Pick<Options, 'themeSelector'>>,
+  ): [base: string | undefined, ...Array<string | undefined>] {
+    // @ts-expect-error private
+    this.designSystem.theme.values = new Map(structuredClone(this.themeValues))
+
+    const transformedStyles = styles.map((value) => this.transformStyle(value))
+    const base = this.candidatesToCss(candidates, options)
+
+    return [base, ...transformedStyles]
+  }
 }
-
-// export const presetCaslon = definePreset(() => {
-//   const preset = new PresetCaslon()
-//
-//   return {
-//     autocomplete: {
-//       templates: preset.designSystem.getClassList().map(([value]) => value),
-//     },
-//     configResolved(options) {
-//       if (options.outputToCssLayers === true || typeof options.outputToCssLayers === 'object') {
-//         throw new Error(`@caslon/preset-unocss: outputToCssLayers is not supported.`)
-//       }
-//     },
-//     layers: {
-//       keyframes: 150,
-//       properties: 100,
-//       theme: -150,
-//       utilities: 0,
-//     },
-//     name: '@caslon/preset-unocss',
-//     // options,
-//     preflights: preset.preflights(),
-//     rules: [preset.createRule()],
-//     theme: {},
-//   } satisfies Preset
-// })
-
-// // @ts-expect-error private
-// const mapUtilities = designSystem.utilities.utilities
-// const mapVariants = designSystem.variants.variants
-
-// ./../vendor/tailwindcss/packages/tailwindcss/theme.css

@@ -1,7 +1,8 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`compiler > . 1`] = `
-"@layer theme {
+[
+  "@layer theme {
   :where(:root,:host,::backdrop,::selection) {
     --animate-spin: spin 1s linear infinite;
   }
@@ -73,13 +74,13 @@ exports[`compiler > . 1`] = `
     transform: rotate(360deg);
   }
 }
-"
+",
+]
 `;
 
 exports[`compiler > . 2`] = `
-"@layer theme;
-
-@layer utilities {
+[
+  "@layer utilities {
   .content-auto-test {
     content-visibility: auto;
   }
@@ -89,13 +90,13 @@ exports[`compiler > . 2`] = `
     }
   }
 }
-
-
-"
+",
+]
 `;
 
 exports[`compiler > . 3`] = `
-"@layer theme {
+[
+  "@layer theme {
   :where(:root,:host,::backdrop,::selection) {
     --radius-xl: 0.75rem;
     --animate-spin: spin 1s linear infinite;
@@ -111,24 +112,43 @@ exports[`compiler > . 3`] = `
   }
 }
 
-
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
-"
+",
+]
 `;
 
 exports[`compiler > . 4`] = `
-"@layer theme;
-
-@layer utilities {
+[
+  "@layer utilities {
   .relative {
     position: relative;
   }
 }
+",
+]
+`;
 
-
-"
+exports[`compiler > . 5`] = `
+[
+  "@layer theme {
+  :where(:root,:host,::backdrop,::selection) {
+    --color-amber-50: oklch(0.987 0.022 95.277);
+    --color-amber-200: oklch(0.924 0.12 95.746);
+    --spacing: 0.25rem;
+  }
+}
+",
+  ":root {
+  @media (prefers-color-scheme: dark) {
+    background-color: var(--color-amber-200);
+  }
+  background-color: var(--color-amber-50);
+  margin: calc(var(--spacing) * 4);
+}
+",
+]
 `;

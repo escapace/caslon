@@ -1,24 +1,20 @@
 import { Compiler } from '@caslon/breeze'
-import { Scanner } from '@tailwindcss/oxide'
+import { Scanner, type ChangedContent } from '@tailwindcss/oxide'
 import type { Options as VueOptions } from '@vitejs/plugin-vue'
+import { parse } from '@vue/compiler-sfc'
 import MagicString from 'magic-string'
-import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
-import fs, { readFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import type { Plugin, ResolvedConfig, TransformResult } from 'vite'
-import { createFilter, normalizePath } from 'vite'
-
-function getHash(text: string): string {
-  // return hash('sha256', text, 'hex').substring(0, 8)
-  return createHash('sha256').update(text).digest('hex').substring(0, 8)
-}
-
-export const isFile = async (path: string) =>
-  await fs
-    .stat(path)
-    .then((stats) => stats.isFile())
-    .catch(() => false)
+import { createFilter } from 'vite'
+import { isFile } from './utilities/is-file'
+// import { createHash } from 'node:crypto'
+//
+// // https://github.com/vitejs/vite-plugin-vue/blob/main/packages/plugin-vue/src/utils/descriptorCache.ts
+// export function getHash(text: string): string {
+//   return createHash('sha256').update(text).digest('hex').substring(0, 8)
+// }
 
 interface Options {
   exclude?: string | ReadonlyArray<string | RegExp> | RegExp
@@ -49,25 +45,26 @@ const createProperties = (options: Options | undefined, config: ResolvedConfig) 
     // eslint-disable-next-line typescript/no-unsafe-member-access
     config.plugins.find((value) => value.name === 'vite:vue')?.api?.options as Partial<VueOptions>
 
-  const componentIdGenerator = vueOptions?.features?.componentIdGenerator
+  // const componentIdGenerator = vueOptions?.features?.componentIdGenerator
   const isProduction = vueOptions.isProduction ?? config.isProduction
 
-  const componentId = (filename: string, source: string) => {
-    const normalizedPath = normalizePath(path.relative(config.root, filename))
-
-    if (componentIdGenerator === 'filepath') {
-      return getHash(normalizedPath)
-    } else if (componentIdGenerator === 'filepath-source') {
-      return getHash(normalizedPath + source)
-    } else if (typeof componentIdGenerator === 'function') {
-      return componentIdGenerator(normalizedPath, source, isProduction, getHash)
-    } else {
-      return getHash(normalizedPath + (isProduction ? source : ''))
-    }
-  }
+  // https://github.com/vitejs/vite-plugin-vue/blob/main/packages/plugin-vue/src/utils/descriptorCache.ts
+  // const componentId = (filename: string, source: string) => {
+  //   const normalizedPath = normalizePath(path.relative(config.root, filename))
+  //
+  //   if (componentIdGenerator === 'filepath') {
+  //     return getHash(normalizedPath)
+  //   } else if (componentIdGenerator === 'filepath-source') {
+  //     return getHash(normalizedPath + source)
+  //   } else if (typeof componentIdGenerator === 'function') {
+  //     return componentIdGenerator(normalizedPath, source, isProduction, getHash)
+  //   } else {
+  //     return getHash(normalizedPath + (isProduction ? source : ''))
+  //   }
+  // }
 
   return {
-    componentId,
+    // componentId,
     filterScoped,
     filterVue,
     isProduction,
@@ -77,45 +74,88 @@ const createProperties = (options: Options | undefined, config: ResolvedConfig) 
   }
 }
 
+const extension = (lang: string | undefined) => {
+  const value = lang === 'ts' ? 'ts' : lang === undefined ? 'js' : undefined
+
+  if (value === undefined) {
+    throw new Error(`unknown lang '${lang}'`)
+  }
+
+  return value
+}
+
+const PLACEHOLDER = '__CASLON_PLACEHOLDER__'
+
 export function caslon(options?: Options): Plugin {
   let properties: ReturnType<typeof createProperties>
 
   const compiler = new Compiler()
 
   function transformSFC(filename: string): TransformResult | undefined {
-    const pathWorkingDirectory = properties.root
-
-    const pattern = path.isAbsolute(filename)
-      ? path.relative(pathWorkingDirectory, filename)
-      : filename
     const source = readFileSync(filename, 'utf8')
-
-    const scanner = new Scanner({ sources: [{ base: pathWorkingDirectory, pattern }] })
-    const candidates = scanner.scan()
-
-    if (candidates.length === 0) {
-      return undefined
-    }
+    const scanner = new Scanner({ sources: [] })
 
     const scoped =
       typeof properties.filterScoped === 'function'
         ? properties.filterScoped(filename)
         : properties.filterScoped
 
-    const css = compiler.compile(
-      candidates,
-      scoped
-        ? { themeSelector: `[data-v-${properties.componentId(filename, source)}]` }
-        : undefined,
-    )
-
-    if (css === undefined) {
-      return undefined
-    }
-
     const magic = new MagicString(source)
 
-    magic.append(`\n<style${scoped ? ' scoped' : ''}>\n${css}\n</style>`)
+    const parseResult = parse(source)
+
+    if (parseResult.errors.length !== 0) {
+      return
+    }
+
+    const { descriptor } = parseResult
+
+    const scanFiles: ChangedContent[] = []
+
+    // TODO: scan src imports
+    if (descriptor.template !== null) {
+      scanFiles.push({
+        content: `<template>${descriptor.template.content}</template>`,
+        extension: 'vue',
+      })
+    }
+
+    // TODO: scan src imports
+    for (const key of ['script', 'scriptSetup'] as const) {
+      if (descriptor[key] !== null) {
+        scanFiles.push({
+          content: descriptor[key].content,
+          extension: extension(descriptor[key].lang),
+        })
+      }
+    }
+
+    const candidates = scanner.scanFiles(scanFiles)
+
+    // TODO: support src imports
+    const styles = parseResult.descriptor.styles.filter(
+      (value) =>
+        value.lang === undefined && value.src === undefined && typeof value.content === 'string',
+    )
+
+    // TODO: support src imports
+    const [baseStyle, ...transformedStyles] = compiler.compile(
+      candidates,
+      styles.map((value) => value.content),
+      { themeSelector: scoped ? PLACEHOLDER : undefined },
+    )
+
+    styles.forEach(({ loc }, index) => {
+      const value = transformedStyles[index]
+
+      if (value !== undefined) {
+        magic.overwrite(loc.start.offset, loc.end.offset, `\n${value}\n`)
+      }
+    })
+
+    if (baseStyle !== undefined) {
+      magic.append(`\n<style${scoped ? ' scoped' : ''}>\n${baseStyle}\n</style>`)
+    }
 
     return {
       code: magic.toString(),
@@ -155,47 +195,50 @@ export function caslon(options?: Options): Plugin {
       order: 'pre',
     },
     name: '@caslon/vite',
+    transform: {
+      handler(code, id) {
+        const url = URL.parse(`file://${id}`)
+
+        if (url === null) {
+          return
+        }
+
+        const { pathname: filename, searchParams: query } = url
+
+        if (!properties.filterVue(filename)) {
+          return
+        }
+
+        if (query.get('vue') !== '') {
+          return
+        }
+
+        if (query.get('type') !== 'style') {
+          return
+        }
+
+        if (query.get('lang.css') !== '') {
+          return
+        }
+
+        const scoped = query.get('scoped')
+
+        if (scoped === null || typeof scoped !== 'string' || scoped.length === 0) {
+          return
+        }
+
+        const magic = new MagicString(code)
+
+        magic.replaceAll(PLACEHOLDER, `:global([data-v-${scoped}])`)
+
+        return magic.hasChanged()
+          ? {
+              code: magic.toString(),
+              map: magic.generateMap(),
+            }
+          : undefined
+      },
+      order: 'pre',
+    },
   }
 }
-
-// let filter = createFilter([/\.vue$/], defaultPipelineExclude)
-// enforce: 'pre',
-// import { parseVueRequest } from '@vitejs/plugin-vue'
-// const { filename, query } = parseVueRequest(id)
-//
-// if (Object.keys(query).length !== 0) {
-//   return undefined
-// }
-//
-// console.log(filename, query)
-//
-// if (!(query.vue === true && typeof query.src === 'string')) {
-//   return
-// }
-
-// shouldTransformCachedModule({ id }) {
-//   return id.includes('.vue')
-//   // return false
-//   // `vite build --watch`
-//   // always transform cached modules for vue sfc
-//   // if (
-//   //   config.command === 'build' &&
-//   //   config.build.watch !== null &&
-//   //   config.build.sourcemap !== false &&
-//   //   id.includes('.vue')
-//   // ) {
-//   //   return true
-//   // }
-//   // return false
-// },
-// transform(code, id) {
-// },
-// handleHotUpdate(ctx) {
-//   const read = ctx.read
-//   if (filter(ctx.file)) {
-//     ctx.read = async () => {
-//       const code = await read()
-//       return await transformSFC(code) || code
-//     }
-//   }
-// },

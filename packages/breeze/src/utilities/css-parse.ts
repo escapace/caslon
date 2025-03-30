@@ -25,6 +25,7 @@ import { createCssUtility } from '../tailwindcss/utilities'
 import { escape, unescape } from '../tailwindcss/utils/escape'
 import { segment } from '../tailwindcss/utils/segment'
 import { compoundsForSelectors, IS_VALID_VARIANT_NAME } from '../tailwindcss/variants'
+import { substituteAtVariant } from './substitute-at-variant'
 
 const IS_VALID_PREFIX = /^[a-z]+$/
 
@@ -61,7 +62,7 @@ export const parseCss = async (css: string) => {
     throw new Error(`@import & @reference not supported. ${value}`)
   })
 
-  let important = null as boolean | null
+  const important = null as boolean | null
   const theme = new Theme()
   const customVariants: Array<(designSystem: DesignSystem) => void> = []
   const customUtilities: Array<(designSystem: DesignSystem) => void> = []
@@ -71,26 +72,8 @@ export const parseCss = async (css: string) => {
   const ignoredCandidates: string[] = []
 
   walk(ast, (node, { context, parent, replaceWith }) => {
-    if (node.kind !== 'at-rule') return
-
-    // Find `@tailwind utilities` so that we can later replace it with the
-    // actual generated utility class CSS.
-    // if (
-    //   node.name === '@tailwind' &&
-    //   (node.params === 'utilities' || node.params.startsWith('utilities'))
-    // ) {
-    //   // Any additional `@tailwind utilities` nodes can be removed
-    //   if (utilitiesNode !== null) {
-    //     replaceWith([])
-    //     return
-    //   }
-    //
-    //   utilitiesNode = node
-    //   features |= Features.Utilities
-    // }
-
     // Collect custom `@utility` at-rules
-    if (node.name === '@utility') {
+    if (node.kind === 'at-rule' && node.name === '@utility') {
       if (parent !== null) {
         throw new Error('`@utility` cannot be nested.')
       }
@@ -109,51 +92,8 @@ export const parseCss = async (css: string) => {
       }
 
       customUtilities.push(utility)
-    }
-
-    // // Apply `@variant` at-rules
-    // if (node.name === '@variant') {
-    //   // Legacy `@variant` at-rules containing `@slot` or without a body should
-    //   // be considered a `@custom-variant` at-rule.
-    //   if (parent === null) {
-    //     // Body-less `@variant`, e.g.: `@variant foo (…);`
-    //     if (node.nodes.length === 0) {
-    //       node.name = '@custom-variant'
-    //     }
-    //
-    //     // Using `@slot`:
-    //     //
-    //     // ```css
-    //     // @variant foo {
-    //     //   &:hover {
-    //     //     @slot;
-    //     //   }
-    //     // }
-    //     // ```
-    //     else {
-    //       walk(node.nodes, (child) => {
-    //         if (child.kind === 'at-rule' && child.name === '@slot') {
-    //           node.name = '@custom-variant'
-    //           return WalkAction.Stop
-    //         }
-    //       })
-    //
-    //       // No `@slot` found, so this is still a regular `@variant` at-rule
-    //       if (node.name === '@variant') {
-    //         variantNodes.push(node)
-    //       }
-    //     }
-    //   }
-    //
-    //   // Collect all the `@variant` at-rules, we will replace them later once
-    //   // all variants are registered in the system.
-    //   else {
-    //     variantNodes.push(node)
-    //   }
-    // }
-
-    // Register custom variants from `@custom-variant` at-rules
-    if (node.name === '@custom-variant') {
+    } else if (node.kind === 'at-rule' && node.name === '@custom-variant') {
+      // Register custom variants from `@custom-variant` at-rules
       if (parent !== null) {
         throw new Error('`@custom-variant` cannot be nested.')
       }
@@ -246,96 +186,8 @@ export const parseCss = async (css: string) => {
 
         return
       }
-    }
-
-    if (node.name === '@media') {
-      const parameters = segment(node.params, ' ')
-      const unknownParameters: string[] = []
-
-      for (const parameter of parameters) {
-        // Handle `@media source(…)`
-        if (parameter.startsWith('source(')) {
-          const path = parameter.slice(7, -1)
-
-          walk(node.nodes, (child, { replaceWith }) => {
-            if (child.kind !== 'at-rule') return
-
-            if (child.name === '@tailwind' && child.params === 'utilities') {
-              child.params += ` source(${path})`
-              replaceWith([contextNode({ sourceBase: context.base }, [child])])
-              return WalkAction.Stop
-            }
-          })
-        }
-
-        // Handle `@media theme(…)`
-        //
-        // We support `@import "tailwindcss" theme(reference)` as a way to
-        // import an external theme file as a reference, which becomes `@media
-        // theme(reference) { … }` when the `@import` is processed.
-        else if (parameter.startsWith('theme(')) {
-          const themeParameters = parameter.slice(6, -1)
-          const hasReference = themeParameters.includes('reference')
-
-          walk(node.nodes, (child) => {
-            if (child.kind !== 'at-rule') {
-              if (hasReference) {
-                throw new Error(
-                  `Files imported with \`@import "…" theme(reference)\` must only contain \`@theme\` blocks.\nUse \`@reference "…";\` instead.`,
-                )
-              }
-
-              return WalkAction.Continue
-            }
-
-            if (child.name === '@theme') {
-              child.params += ' ' + themeParameters
-              return WalkAction.Skip
-            }
-          })
-        }
-
-        // Handle `@media prefix(…)`
-        //
-        // We support `@import "tailwindcss" prefix(ident)` as a way to
-        // configure a theme prefix for variables and utilities.
-        else if (parameter.startsWith('prefix(')) {
-          const prefix = parameter.slice(7, -1)
-
-          walk(node.nodes, (child) => {
-            if (child.kind !== 'at-rule') return
-            if (child.name === '@theme') {
-              child.params += ` prefix(${prefix})`
-              return WalkAction.Skip
-            }
-          })
-        }
-
-        // Handle important
-        else if (parameter === 'important') {
-          important = true
-        }
-
-        // Handle `@import "…" reference`
-        else if (parameter === 'reference') {
-          node.nodes = [contextNode({ reference: true }, node.nodes)]
-        }
-
-        //
-        else {
-          unknownParameters.push(parameter)
-        }
-      }
-
-      if (unknownParameters.length > 0) {
-        node.params = unknownParameters.join(' ')
-      } else if (parameters.length > 0) {
-        replaceWith(node.nodes)
-      }
-    }
-
-    // Handle `@theme`
-    if (node.name === '@theme') {
+    } else if (node.kind === 'at-rule' && node.name === '@theme') {
+      // Handle `@theme`
       let [themeOptions, themePrefix] = parseThemeOptions(node.params)
 
       if (context.reference) {
@@ -387,7 +239,12 @@ export const parseCss = async (css: string) => {
       } else {
         replaceWith([])
       }
+
       return WalkAction.Skip
+    } else {
+      if (parent === null) {
+        throw new Error('only @theme, @utility or @custom-variant are allowed')
+      }
     }
   })
 
@@ -433,38 +290,8 @@ export const parseCss = async (css: string) => {
     firstThemeRule.nodes = [context({ theme: true }, nodes)]
   }
 
-  // Replace the `@tailwind utilities` node with a context since it prints
-  // children directly.
-  // if (utilitiesNode) {
-  //   const node = utilitiesNode as AstNode as Context
-  //   node.kind = 'context'
-  //   node.context = {}
-  // }
-
-  // Replace the `@variant` at-rules with the actual variant rules.
-  // if (variantNodes.length > 0) {
-  //   for (const variantNode of variantNodes) {
-  //     // Starting with the `&` rule node
-  //     const node = styleRule('&', variantNode.nodes)
-  //
-  //     const variant = variantNode.params
-  //
-  //     const variantAst = designSystem.parseVariant(variant)
-  //     if (variantAst === null) {
-  //       throw new Error(`Cannot use \`@variant\` with unknown variant: ${variant}`)
-  //     }
-  //
-  //     const result = applyVariant(node, variantAst, designSystem.variants)
-  //     if (result === null) {
-  //       throw new Error(`Cannot use \`@variant\` with variant: ${variant}`)
-  //     }
-  //
-  //     // Update the variant at-rule node, to be the `&` rule node
-  //     Object.assign(variantNode, node)
-  //   }
-  //   features |= Features.Variants
-  // }
-
+  // FIXME: is this necessary?
+  features |= substituteAtVariant(ast, designSystem)
   features |= substituteFunctions(ast, designSystem)
   features |= substituteAtApply(ast, designSystem)
 
@@ -489,3 +316,178 @@ export const parseCss = async (css: string) => {
     features,
   }
 }
+
+// // Apply `@variant` at-rules
+// if (node.name === '@variant') {
+//   // Legacy `@variant` at-rules containing `@slot` or without a body should
+//   // be considered a `@custom-variant` at-rule.
+//   if (parent === null) {
+//     // Body-less `@variant`, e.g.: `@variant foo (…);`
+//     if (node.nodes.length === 0) {
+//       node.name = '@custom-variant'
+//     }
+//
+//     // Using `@slot`:
+//     //
+//     // ```css
+//     // @variant foo {
+//     //   &:hover {
+//     //     @slot;
+//     //   }
+//     // }
+//     // ```
+//     else {
+//       walk(node.nodes, (child) => {
+//         if (child.kind === 'at-rule' && child.name === '@slot') {
+//           node.name = '@custom-variant'
+//           return WalkAction.Stop
+//         }
+//       })
+//
+//       // No `@slot` found, so this is still a regular `@variant` at-rule
+//       if (node.name === '@variant') {
+//         variantNodes.push(node)
+//       }
+//     }
+//   }
+//
+//   // Collect all the `@variant` at-rules, we will replace them later once
+//   // all variants are registered in the system.
+//   else {
+//     variantNodes.push(node)
+//   }
+// }
+//
+// Find `@tailwind utilities` so that we can later replace it with the
+// actual generated utility class CSS.
+// if (
+//   node.name === '@tailwind' &&
+//   (node.params === 'utilities' || node.params.startsWith('utilities'))
+// ) {
+//   // Any additional `@tailwind utilities` nodes can be removed
+//   if (utilitiesNode !== null) {
+//     replaceWith([])
+//     return
+//   }
+//
+//   utilitiesNode = node
+//   features |= Features.Utilities
+// }
+
+// Replace the `@tailwind utilities` node with a context since it prints
+// children directly.
+// if (utilitiesNode) {
+//   const node = utilitiesNode as AstNode as Context
+//   node.kind = 'context'
+//   node.context = {}
+// }
+
+// Replace the `@variant` at-rules with the actual variant rules.
+// if (variantNodes.length > 0) {
+//   for (const variantNode of variantNodes) {
+//     // Starting with the `&` rule node
+//     const node = styleRule('&', variantNode.nodes)
+//
+//     const variant = variantNode.params
+//
+//     const variantAst = designSystem.parseVariant(variant)
+//     if (variantAst === null) {
+//       throw new Error(`Cannot use \`@variant\` with unknown variant: ${variant}`)
+//     }
+//
+//     const result = applyVariant(node, variantAst, designSystem.variants)
+//     if (result === null) {
+//       throw new Error(`Cannot use \`@variant\` with variant: ${variant}`)
+//     }
+//
+//     // Update the variant at-rule node, to be the `&` rule node
+//     Object.assign(variantNode, node)
+//   }
+//   features |= Features.Variants
+// }
+//
+// if (node.name === '@media') {
+//   const parameters = segment(node.params, ' ')
+//   const unknownParameters: string[] = []
+//
+//   for (const parameter of parameters) {
+//     // Handle `@media source(…)`
+//     if (parameter.startsWith('source(')) {
+//       const path = parameter.slice(7, -1)
+//
+//       walk(node.nodes, (child, { replaceWith }) => {
+//         if (child.kind !== 'at-rule') return
+//
+//         if (child.name === '@tailwind' && child.params === 'utilities') {
+//           child.params += ` source(${path})`
+//           replaceWith([contextNode({ sourceBase: context.base }, [child])])
+//           return WalkAction.Stop
+//         }
+//       })
+//     }
+//
+//     // Handle `@media theme(…)`
+//     //
+//     // We support `@import "tailwindcss" theme(reference)` as a way to
+//     // import an external theme file as a reference, which becomes `@media
+//     // theme(reference) { … }` when the `@import` is processed.
+//     else if (parameter.startsWith('theme(')) {
+//       const themeParameters = parameter.slice(6, -1)
+//       const hasReference = themeParameters.includes('reference')
+//
+//       walk(node.nodes, (child) => {
+//         if (child.kind !== 'at-rule') {
+//           if (hasReference) {
+//             throw new Error(
+//               `Files imported with \`@import "…" theme(reference)\` must only contain \`@theme\` blocks.\nUse \`@reference "…";\` instead.`,
+//             )
+//           }
+//
+//           return WalkAction.Continue
+//         }
+//
+//         if (child.name === '@theme') {
+//           child.params += ' ' + themeParameters
+//           return WalkAction.Skip
+//         }
+//       })
+//     }
+//
+//     // Handle `@media prefix(…)`
+//     //
+//     // We support `@import "tailwindcss" prefix(ident)` as a way to
+//     // configure a theme prefix for variables and utilities.
+//     else if (parameter.startsWith('prefix(')) {
+//       const prefix = parameter.slice(7, -1)
+//
+//       walk(node.nodes, (child) => {
+//         if (child.kind !== 'at-rule') return
+//         if (child.name === '@theme') {
+//           child.params += ` prefix(${prefix})`
+//           return WalkAction.Skip
+//         }
+//       })
+//     }
+//
+//     // Handle important
+//     else if (parameter === 'important') {
+//       important = true
+//     }
+//
+//     // Handle `@import "…" reference`
+//     else if (parameter === 'reference') {
+//       node.nodes = [contextNode({ reference: true }, node.nodes)]
+//     }
+//
+//     //
+//     else {
+//       unknownParameters.push(parameter)
+//     }
+//   }
+//
+//   if (unknownParameters.length > 0) {
+//     node.params = unknownParameters.join(' ')
+//   } else if (parameters.length > 0) {
+//     replaceWith(node.nodes)
+//   }
+// }
