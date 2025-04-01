@@ -45,7 +45,7 @@
   "license": "MPL-2.0",
   "module": "./lib/node/index.js",
   "peerDependencies": {
-    "vite": ">=6.2.3"
+    "vite": ">=6.2.4"
   },
   "private": false,
   "publishConfig": {
