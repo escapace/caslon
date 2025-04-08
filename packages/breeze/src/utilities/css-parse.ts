@@ -50,16 +50,24 @@ function parseThemeOptions(parameters: string) {
   return [options, prefix] as const
 }
 
-export const parseCss = async (css: string) => {
+export const parseCss = async (options: {
+  css: string
+  directory?: string
+  loadStyleSheet?: (id: string, directory: string) => Promise<{ base: string; content: string }>
+}) => {
   let features = Features.None
-  const ast = [contextNode({ base: '' }, parse(css))] as AstNode[]
-  // eslint-disable-next-line typescript/require-await
-  features |= await substituteAtImports(ast, '', async (value) => {
-    if (value === 'tailwindcss') {
+  const ast = [contextNode({ base: '' }, parse(options.css))] as AstNode[]
+
+  features |= await substituteAtImports(ast, options.directory ?? '', async (id, directory) => {
+    if (id === 'tailwindcss') {
       return { base: '', content: '' }
     }
 
-    throw new Error(`@import & @reference not supported. ${value}`)
+    if (options.loadStyleSheet === undefined) {
+      throw new Error(`@import & @reference not supported. ${id}`)
+    }
+
+    return await options.loadStyleSheet(id, directory)
   })
 
   const important = null as boolean | null

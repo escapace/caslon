@@ -20,8 +20,10 @@ import { parseCss } from './utilities/css-parse'
 import { sortAstNodes } from './utilities/sort-ast-nodes'
 import { substituteAtVariant } from './utilities/substitute-at-variant'
 
-// TODO: move themeSelector to theme
+// TODO: move themeSelector to theme?
 export interface Options {
+  directory?: string
+  loadStyleSheet?: (id: string, directory: string) => Promise<{ base: string; content: string }>
   theme?: string
   themeSelector?: string
 }
@@ -43,9 +45,11 @@ export class Compiler {
       themeSelector: options.themeSelector ?? ':where(:root,:host,::backdrop,::selection)',
     }
 
-    const { ast, designSystem } = await parseCss(
-      [DEFAULT_THEME, this.options.theme].filter((value) => value !== undefined).join('\n'),
-    )
+    const { ast, designSystem } = await parseCss({
+      css: [DEFAULT_THEME, this.options.theme].filter((value) => value !== undefined).join('\n'),
+      directory: options.directory,
+      loadStyleSheet: options.loadStyleSheet,
+    })
 
     // @ts-expect-error private
     this.themeValues = Array.from(designSystem.theme.values.entries())
@@ -180,7 +184,11 @@ export class Compiler {
     }
   }
 
-  private transformStyle(css: string) {
+  private transformStyle(css: string | undefined) {
+    if (css === undefined) {
+      return
+    }
+
     const ast = parse(css)
 
     substituteAtVariant(ast, this.designSystem)
@@ -236,7 +244,7 @@ export class Compiler {
 
   public compile(
     candidates: string[],
-    styles: string[] = [],
+    styles: Array<string | undefined> = [],
     options?: Partial<Pick<Options, 'themeSelector'>>,
   ): [base: string | undefined, ...Array<string | undefined>] {
     // @ts-expect-error private
