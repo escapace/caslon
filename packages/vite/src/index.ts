@@ -50,12 +50,12 @@ const createProperties = (options: Options | undefined, config: ResolvedConfig) 
     // eslint-disable-next-line typescript/no-unsafe-member-access
     config.plugins.find((value) => value.name === 'vite:vue')?.api?.options as Partial<VueOptions>
 
-  // eslint-disable-next-line typescript/no-non-null-assertion
-  const handleHotUpdate = config.plugins.find(
-    (value) => value.name === 'vite:vue',
-  )!.handleHotUpdate!
-
-  assert(typeof handleHotUpdate === 'function')
+  // // eslint-disable-next-line typescript/no-non-null-assertion
+  // const handleHotUpdate = config.plugins.find(
+  //   (value) => value.name === 'vite:vue',
+  // )!.handleHotUpdate!
+  //
+  // assert(typeof handleHotUpdate === 'function')
 
   // const componentIdGenerator = vueOptions?.features?.componentIdGenerator
   const isProduction = vueOptions.isProduction ?? config.isProduction
@@ -77,8 +77,14 @@ const createProperties = (options: Options | undefined, config: ResolvedConfig) 
 
   const state = new Map<string, State>()
 
+  const mode = config.mode
+
+  const sourceMaps = config.mode === 'development'
+
   return {
-    handleHotUpdate,
+    // handleHotUpdate,
+    mode,
+    sourceMaps,
     state,
     // componentId,
     filterScoped,
@@ -100,7 +106,7 @@ interface StateSFC {
 
 interface StateStyle {
   code: string
-  map: SourceMap
+  map: SourceMap | null
   sfc: string
   type: 'style'
 }
@@ -193,7 +199,10 @@ const parseStyleId = (id: string) => {
 export function caslon(options?: Options): Plugin[] {
   let properties: {
     addWatchFile?: (id: string) => void
+    error?: (error: string) => never
+    info?: (message: string) => never
     server?: ViteDevServer | undefined
+    warn?: (message: string) => never
   } & ReturnType<typeof createProperties>
 
   const compiler = new Compiler()
@@ -219,7 +228,6 @@ export function caslon(options?: Options): Plugin[] {
         ? properties.filterScoped(filePath)
         : properties.filterScoped
 
-    // TODO: sourcemaps
     const magic = new MagicString(code)
 
     const parseResult = parse(code, {
@@ -310,11 +318,12 @@ export function caslon(options?: Options): Plugin[] {
         const magic = new MagicString(style.content)
 
         magic.update(0, magic.length(), code)
-        // `${style.filePath}?index=${index + indexOffset}`
 
         properties.state.set(style.filePath, {
           code: magic.toString(),
-          map: magic.generateMap(),
+          map: properties.sourceMaps
+            ? magic.generateMap({ hires: 'boundary', source: style.filePath })
+            : null,
           sfc: filePath,
           type: 'style',
         })
@@ -330,7 +339,9 @@ export function caslon(options?: Options): Plugin[] {
     return magicHasChanged
       ? {
           code: magic.toString(),
-          map: magic.generateMap(),
+          map: properties.sourceMaps
+            ? magic.generateMap({ hires: 'boundary', source: filePath })
+            : null,
         }
       : undefined
   }
@@ -359,15 +370,20 @@ export function caslon(options?: Options): Plugin[] {
       themeSelector: options?.themeSelector,
     })
 
-    console.log('RESET DONE')
+    properties.info?.('loading theme')
   }
 
   return [
     {
       async buildStart() {
-        const watchFile = this.addWatchFile
+        const { addWatchFile: watchFile, error, info, warn } = this
 
-        Object.assign(properties, { watchFile })
+        Object.assign(properties, {
+          error: error.bind(this),
+          info: info.bind(this),
+          warn: warn.bind(this),
+          watchFile: watchFile.bind(this),
+        })
 
         await reset()
       },
@@ -377,7 +393,6 @@ export function caslon(options?: Options): Plugin[] {
       configureServer(server) {
         Object.assign(properties, { server })
 
-        // TODO: is this necessary?
         server.watcher.on('add', () => void reset())
         server.watcher.on('unlink', () => void reset())
       },
@@ -510,17 +525,10 @@ export function caslon(options?: Options): Plugin[] {
 
           magic.replaceAll(PLACEHOLDER, `:global([data-v-${scoped}])`)
 
-          if (magic.hasChanged()) {
-            console.log('transform', {
-              filePath,
-              id,
-            })
-          }
-
           return magic.hasChanged()
             ? {
                 code: magic.toString(),
-                map: magic.generateMap(),
+                map: properties.sourceMaps ? magic.generateMap({ hires: 'boundary' }) : null,
               }
             : undefined
         },
@@ -531,7 +539,6 @@ export function caslon(options?: Options): Plugin[] {
 }
 
 // if (state.type === 'theme') {
-//   // TODO: invalidate only seen sfc's
 //   moduleGraph.invalidateModule()
 //   context.server.ws.send({ type: 'full-reload' })
 //
