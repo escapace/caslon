@@ -56,7 +56,7 @@ export const parseCss = async (options: {
   loadStyleSheet?: (id: string, directory: string) => Promise<{ base: string; content: string }>
 }) => {
   let features = Features.None
-  const ast = [contextNode({ base: '' }, parse(options.css))] as AstNode[]
+  const ast = [contextNode({ theme: true }, parse(options.css))] as AstNode[]
 
   features |= await substituteAtImports(ast, options.directory ?? '', async (id, directory) => {
     if (id === 'tailwindcss') {

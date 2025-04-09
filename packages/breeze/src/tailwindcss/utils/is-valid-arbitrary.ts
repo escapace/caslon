@@ -1,0 +1,1 @@
+../../../vendor/tailwindcss/packages/tailwindcss/src/utils/is-valid-arbitrary.ts

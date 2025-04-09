@@ -1,3 +1,16 @@
+export const enum Polyfills {
+  None = 0,
+
+  // Control if fallbacks for `@property` rules are emitted
+  AtProperty = 1 << 0,
+
+  // Control if `color-mix(…)` fallbacks are inserted
+  ColorMix = 1 << 1,
+
+  // Enable all
+  All = AtProperty | ColorMix,
+}
+
 export const enum Features {
   None = 0,
 

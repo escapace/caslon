@@ -79,7 +79,7 @@ const createProperties = (options: Options | undefined, config: ResolvedConfig) 
 
   const mode = config.mode
 
-  const sourceMaps = config.mode === 'development'
+  const sourceMaps = config.mode === 'development' ? (config.css.devSourcemap ?? false) : false
 
   return {
     // handleHotUpdate,
@@ -231,7 +231,7 @@ export function caslon(options?: Options): Plugin[] {
     const magic = new MagicString(code)
 
     const parseResult = parse(code, {
-      sourceMap: true,
+      sourceMap: properties.sourceMaps,
       templateParseOptions: properties.vueOptions?.template?.compilerOptions,
     })
 

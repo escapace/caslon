@@ -7,10 +7,17 @@ describe('compiler', () => {
     await compiler.reset()
 
     expect(
-      compiler.compile(['bg-linear-to-t', 'from-sky-50-50', 'to-indigo-50-50/75', 'animate-spin']),
+      compiler.compile(['bg-linear-to-t', 'from-sky-50-50', 'to-primary-50-50', 'animate-spin']),
     ).toMatchSnapshot()
 
     assert.deepEqual(compiler.compile([]), [undefined])
+  })
+
+  it('.', async () => {
+    const compiler = new Compiler()
+    await compiler.reset()
+
+    expect(compiler.compile(['dark:bg-red-50'])).toMatchSnapshot()
   })
 
   it('.', async () => {
@@ -112,6 +119,7 @@ describe('compiler', () => {
   @apply bg-amber-50;
 
   margin: --spacing(4);
+  background-color: --alpha(var(--color-gray-950) / 10%);
 }
 `,
         ],

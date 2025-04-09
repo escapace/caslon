@@ -1,8 +1,12 @@
 /* eslint-disable typescript/no-non-null-assertion */
+import { colorScheme } from './plugins/color-scheme'
+import { vue } from './plugins/vue'
+import { Polyfills } from './tailwindcss'
 import { substituteAtApply } from './tailwindcss/apply'
 import {
   toCss as _toCss,
   atRule,
+  comment,
   decl,
   optimizeAst,
   styleRule,
@@ -19,6 +23,8 @@ import { DEFAULT_THEME } from './theme'
 import { parseCss } from './utilities/css-parse'
 import { sortAstNodes } from './utilities/sort-ast-nodes'
 import { substituteAtVariant } from './utilities/substitute-at-variant'
+
+const polyfills = Polyfills.ColorMix
 
 // TODO: move themeSelector to theme?
 export interface Options {
@@ -51,6 +57,9 @@ export class Compiler {
       loadStyleSheet: options.loadStyleSheet,
     })
 
+    vue(designSystem)
+    colorScheme(designSystem)
+
     // @ts-expect-error private
     this.themeValues = Array.from(designSystem.theme.values.entries())
 
@@ -64,6 +73,7 @@ export class Compiler {
       { candidate: string; properties: { count: number; order: number[] }; variants: bigint }
     >()
     const astNodes: AstNode[] = []
+    const validCandidates = new Set<string>()
 
     const variantOrderMap = this.designSystem.getVariantOrder()
 
@@ -95,7 +105,9 @@ export class Compiler {
         }
       }
 
-      if (!found) {
+      if (found) {
+        validCandidates.add(rawCandidate)
+      } else {
         this.designSystem.invalidCandidates.add(rawCandidate)
         // onInvalidCandidate?.(rawCandidate)
       }
@@ -114,10 +126,23 @@ export class Compiler {
 
     // console.log(JSON.stringify(this.themeAst, null, 2))
 
-    return optimizeAst(
+    if (astNodes.length !== 0) {
+      astNodes.unshift(comment(` caslon-utilities: ${[...validCandidates].join(', ')} `))
+    }
+
+    const result = optimizeAst(
       [...structuredClone(this.themeAst), atRule('@layer', 'utilities', astNodes)],
       this.designSystem,
+      polyfills,
     )
+
+    walk(result, (value, tools) => {
+      if (value.kind === 'rule' && value.selector === 'REMOVE_THIS') {
+        tools.replaceWith([])
+      }
+    })
+
+    return result
   }
 
   private compileLayers(
@@ -156,12 +181,6 @@ export class Compiler {
     })
 
     walk(astNodes, (value, tools) => {
-      if (value.kind === 'rule' && value.selector === 'REMOVE_THIS') {
-        tools.replaceWith([])
-      }
-    })
-
-    walk(astNodes, (value, tools) => {
       if (value.kind === 'at-rule' && value.name === '@layer' && value.params === 'utilities') {
         utilities.push(value)
         tools.replaceWith([])
@@ -195,7 +214,7 @@ export class Compiler {
     substituteFunctions(ast, this.designSystem)
     substituteAtApply(ast, this.designSystem)
 
-    return toCss(optimizeAst(ast, this.designSystem))
+    return toCss(optimizeAst(ast, this.designSystem, polyfills))
   }
 
   private candidatesToCss(
