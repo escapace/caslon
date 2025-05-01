@@ -276,11 +276,11 @@ export const DEFAULT_THEME = `@theme default {
 
   --spacing: 0.25rem;
 
-  --breakpoint-sm: 40rem;
-  --breakpoint-md: 48rem;
-  --breakpoint-lg: 64rem;
-  --breakpoint-xl: 80rem;
-  --breakpoint-2xl: 96rem;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
 
   --container-3xs: 16rem;
   --container-2xs: 18rem;
@@ -302,6 +302,8 @@ export const DEFAULT_THEME = `@theme default {
   --text-sm--line-height: calc(1.25 / 0.875);
   --text-base: 1rem;
   --text-base--line-height: calc(1.5 / 1);
+  --text-md: 1rem;
+  --text-md--line-height: calc(1.5 / 1);
   --text-lg: 1.125rem;
   --text-lg--line-height: calc(1.75 / 1.125);
   --text-xl: 1.25rem;

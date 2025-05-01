@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Compiler } from '../index'
 
-describe('compiler', () => {
+describe('vue', () => {
   it('.', async () => {
     const compiler = new Compiler()
     await compiler.reset()

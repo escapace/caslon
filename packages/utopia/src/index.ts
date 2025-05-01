@@ -231,7 +231,7 @@ const calculateTypeSize = (
 
   return config.calculateTypeSize !== undefined
     ? config.calculateTypeSize({ fontSize, scale, step, steps })
-    : fontSize * Math.pow(scale, step / steps)
+    : fontSize * Math.pow(scale, step) /* fontSize * Math.pow(scale, step / steps) */
 }
 
 const mapStepToLabel = (step: number, labelGroup: UtopiaLabelStyle = 'utopia') => {
@@ -242,7 +242,7 @@ const mapStepToLabel = (step: number, labelGroup: UtopiaLabelStyle = 'utopia') =
 
   if (labelGroup === 'tailwind') {
     if (step === -1) return 'sm'
-    if (step === 0) return 'base'
+    if (step === 0) return 'md'
     if (step === 1) return 'lg'
   }
 
@@ -261,6 +261,7 @@ const mapStepToLabel = (step: number, labelGroup: UtopiaLabelStyle = 'utopia') =
 const calculateTypeStep = (config: UtopiaTypeConfig, step: number, steps: number): UtopiaStep => {
   const minFontSize = calculateTypeSize(config, config.minWidth, step, steps)
   const maxFontSize = calculateTypeSize(config, config.maxWidth, step, steps)
+  // TODO: clean this up
   const wcag = checkWCAG({
     max: maxFontSize,
     maxWidth: config.maxWidth,
@@ -438,11 +439,6 @@ export const calculateSpaceScale = (config: UtopiaSpaceConfig): UtopiaSpaceScale
   }
 }
 
-// TODO: snap to grid
-
-// sans-serif-1/2
-// sans-serif-
-
 export const typeScaleToString = (config: { prefix?: string } & UtopiaTypeConfig): string => {
   const scales = calculateTypeScale(config)
   const prefix = config.prefix ?? 'type'
@@ -468,11 +464,12 @@ export const typeScaleToString = (config: { prefix?: string } & UtopiaTypeConfig
 }
 
 // const result = typeScaleToString({
+//   prefix: 'x-height',
 //   labelStyle: 'tshirt',
 //   maxFontSize: 20,
 //   maxTypeScale: 1.25,
 //   maxWidth: 1240,
-//   minFontSize: 18,
+//   minFontSize: 10,
 //   minTypeScale: 1.2,
 //   minWidth: 320,
 //   negativeSteps: 3,

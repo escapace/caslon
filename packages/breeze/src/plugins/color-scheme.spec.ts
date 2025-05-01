@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { Compiler } from '../index'
 
-describe('compiler', () => {
-  it('.', async () => {
+describe('color-scheme', () => {
+  it('colors', async () => {
     const compiler = new Compiler()
     await compiler.reset()
 
@@ -15,5 +15,13 @@ describe('compiler', () => {
     expect(
       compiler.compile(['bg-linear-to-t', 'from-primary-50-50', 'to-0-50-50']),
     ).toMatchSnapshot()
+  })
+
+  it('light/dark', async () => {
+    const compiler = new Compiler()
+    await compiler.reset()
+
+    expect(compiler.compile(['dark:container'])).toMatchSnapshot()
+    expect(compiler.compile(['light:container'])).toMatchSnapshot()
   })
 })

@@ -1,25 +1,25 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`compiler > . 1`] = `
+exports[`vue > . 1`] = `
 [
   "@layer utilities {
   /* caslon-utilities: global:container */
   :global(.global\\:container) {
     width: 100%;
-    @media (width >= 40rem) {
-      max-width: 40rem;
+    @media (width >= 640px) {
+      max-width: 640px;
     }
-    @media (width >= 48rem) {
-      max-width: 48rem;
+    @media (width >= 768px) {
+      max-width: 768px;
     }
-    @media (width >= 64rem) {
-      max-width: 64rem;
+    @media (width >= 1024px) {
+      max-width: 1024px;
     }
-    @media (width >= 80rem) {
-      max-width: 80rem;
+    @media (width >= 1280px) {
+      max-width: 1280px;
     }
-    @media (width >= 96rem) {
-      max-width: 96rem;
+    @media (width >= 1536px) {
+      max-width: 1536px;
     }
   }
 }
@@ -27,26 +27,26 @@ exports[`compiler > . 1`] = `
 ]
 `;
 
-exports[`compiler > . 2`] = `
+exports[`vue > . 2`] = `
 [
   "@layer utilities {
   /* caslon-utilities: slotted:container */
   :slotted(.slotted\\:container) {
     width: 100%;
-    @media (width >= 40rem) {
-      max-width: 40rem;
+    @media (width >= 640px) {
+      max-width: 640px;
     }
-    @media (width >= 48rem) {
-      max-width: 48rem;
+    @media (width >= 768px) {
+      max-width: 768px;
     }
-    @media (width >= 64rem) {
-      max-width: 64rem;
+    @media (width >= 1024px) {
+      max-width: 1024px;
     }
-    @media (width >= 80rem) {
-      max-width: 80rem;
+    @media (width >= 1280px) {
+      max-width: 1280px;
     }
-    @media (width >= 96rem) {
-      max-width: 96rem;
+    @media (width >= 1536px) {
+      max-width: 1536px;
     }
   }
 }
@@ -54,26 +54,26 @@ exports[`compiler > . 2`] = `
 ]
 `;
 
-exports[`compiler > . 3`] = `
+exports[`vue > . 3`] = `
 [
   "@layer utilities {
   /* caslon-utilities: deep:container */
   :deep(.deep\\:container) {
     width: 100%;
-    @media (width >= 40rem) {
-      max-width: 40rem;
+    @media (width >= 640px) {
+      max-width: 640px;
     }
-    @media (width >= 48rem) {
-      max-width: 48rem;
+    @media (width >= 768px) {
+      max-width: 768px;
     }
-    @media (width >= 64rem) {
-      max-width: 64rem;
+    @media (width >= 1024px) {
+      max-width: 1024px;
     }
-    @media (width >= 80rem) {
-      max-width: 80rem;
+    @media (width >= 1280px) {
+      max-width: 1280px;
     }
-    @media (width >= 96rem) {
-      max-width: 96rem;
+    @media (width >= 1536px) {
+      max-width: 1536px;
     }
   }
 }

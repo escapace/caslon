@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`compiler > . 1`] = `
+exports[`color-scheme > colors 1`] = `
 [
   "@layer utilities {
   /* caslon-utilities: bg-primary-15-15-10 */
@@ -12,7 +12,7 @@ exports[`compiler > . 1`] = `
 ]
 `;
 
-exports[`compiler > . 2`] = `
+exports[`color-scheme > colors 2`] = `
 [
   "@layer utilities {
   /* caslon-utilities: bg-primary-15-15/10 */
@@ -27,7 +27,7 @@ exports[`compiler > . 2`] = `
 ]
 `;
 
-exports[`compiler > . 3`] = `
+exports[`color-scheme > colors 3`] = `
 [
   "@layer utilities {
   /* caslon-utilities: bg-primary-15-15/[71.37%] */
@@ -42,7 +42,7 @@ exports[`compiler > . 3`] = `
 ]
 `;
 
-exports[`compiler > . 4`] = `
+exports[`color-scheme > colors 4`] = `
 [
   "@layer utilities {
   /* caslon-utilities: bg-(---color-primary-15-15) */
@@ -54,7 +54,7 @@ exports[`compiler > . 4`] = `
 ]
 `;
 
-exports[`compiler > . 5`] = `
+exports[`color-scheme > colors 5`] = `
 [
   "@layer utilities {
   /* caslon-utilities: bg-(---color-primary-15-15)/10 */
@@ -69,7 +69,7 @@ exports[`compiler > . 5`] = `
 ]
 `;
 
-exports[`compiler > . 6`] = `
+exports[`color-scheme > colors 6`] = `
 [
   "@layer utilities {
   /* caslon-utilities: bg-[primary-15-15] */
@@ -81,7 +81,7 @@ exports[`compiler > . 6`] = `
 ]
 `;
 
-exports[`compiler > . 7`] = `
+exports[`color-scheme > colors 7`] = `
 [
   "@layer utilities {
   /* caslon-utilities: bg-linear-to-t, from-primary-50-50, to-0-50-50 */
@@ -143,6 +143,104 @@ exports[`compiler > . 7`] = `
   syntax: "<length-percentage>";
   inherits: false;
   initial-value: 100%;
+}
+",
+]
+`;
+
+exports[`color-scheme > light/dark 1`] = `
+[
+  "@layer utilities {
+  /* caslon-utilities: dark:container */
+  .dark\\:container {
+    &:not(.light, .light *, .dark, .dark *) {
+      @media (prefers-color-scheme: dark) {
+        width: 100%;
+        @media (width >= 640px) {
+          max-width: 640px;
+        }
+        @media (width >= 768px) {
+          max-width: 768px;
+        }
+        @media (width >= 1024px) {
+          max-width: 1024px;
+        }
+        @media (width >= 1280px) {
+          max-width: 1280px;
+        }
+        @media (width >= 1536px) {
+          max-width: 1536px;
+        }
+      }
+    }
+    &:is(.dark, .dark *) {
+      width: 100%;
+      @media (width >= 640px) {
+        max-width: 640px;
+      }
+      @media (width >= 768px) {
+        max-width: 768px;
+      }
+      @media (width >= 1024px) {
+        max-width: 1024px;
+      }
+      @media (width >= 1280px) {
+        max-width: 1280px;
+      }
+      @media (width >= 1536px) {
+        max-width: 1536px;
+      }
+    }
+  }
+}
+",
+]
+`;
+
+exports[`color-scheme > light/dark 2`] = `
+[
+  "@layer utilities {
+  /* caslon-utilities: light:container */
+  .light\\:container {
+    &:not(.light, .light *, .dark, .dark *) {
+      @media (prefers-color-scheme: light) {
+        width: 100%;
+        @media (width >= 640px) {
+          max-width: 640px;
+        }
+        @media (width >= 768px) {
+          max-width: 768px;
+        }
+        @media (width >= 1024px) {
+          max-width: 1024px;
+        }
+        @media (width >= 1280px) {
+          max-width: 1280px;
+        }
+        @media (width >= 1536px) {
+          max-width: 1536px;
+        }
+      }
+    }
+    &:is(.light, .light *) {
+      width: 100%;
+      @media (width >= 640px) {
+        max-width: 640px;
+      }
+      @media (width >= 768px) {
+        max-width: 768px;
+      }
+      @media (width >= 1024px) {
+        max-width: 1024px;
+      }
+      @media (width >= 1280px) {
+        max-width: 1280px;
+      }
+      @media (width >= 1536px) {
+        max-width: 1536px;
+      }
+    }
+  }
 }
 ",
 ]

@@ -44,7 +44,7 @@ exports[`calculateTypeScale > should generate a scale with tailwind labels 1`] =
   },
   {
     "clamp": "clamp(1.125rem, 1.0815rem + 0.2174vw, 1.25rem)",
-    "label": "base",
+    "label": "md",
     "maxFontSize": 20,
     "minFontSize": 18,
     "step": 0,

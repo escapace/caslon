@@ -3,7 +3,7 @@
 exports[`compiler > . 1`] = `
 [
   "@layer theme {
-  :where(:root,:host,::backdrop,::selection) {
+  :where(:root,:host) {
     --animate-spin: spin 1s linear infinite;
   }
 }
@@ -85,7 +85,7 @@ exports[`compiler > . 1`] = `
 exports[`compiler > . 2`] = `
 [
   "@layer theme {
-  :where(:root,:host,::backdrop,::selection) {
+  :where(:root,:host) {
     --color-red-50: oklch(97.1% 0.013 17.38);
   }
 }
@@ -127,7 +127,7 @@ exports[`compiler > . 3`] = `
 exports[`compiler > . 4`] = `
 [
   "@layer theme {
-  :where(:root,:host,::backdrop,::selection) {
+  :where(:root,:host) {
     --radius-xl: 0.75rem;
     --animate-spin: spin 1s linear infinite;
   }
@@ -167,7 +167,7 @@ exports[`compiler > . 5`] = `
 exports[`compiler > . 6`] = `
 [
   "@layer theme {
-  :where(:root,:host,::backdrop,::selection) {
+  :where(:root,:host) {
     --color-amber-50: oklch(98.7% 0.022 95.277);
     --color-amber-200: oklch(92.4% 0.12 95.746);
     --color-gray-950: oklch(13% 0.028 261.692);

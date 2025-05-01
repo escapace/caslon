@@ -1,5 +1,6 @@
 /* eslint-disable typescript/no-non-null-assertion */
 import { colorScheme } from './plugins/color-scheme'
+import { pangram, type PangramOptions } from './plugins/pangram'
 import { vue } from './plugins/vue'
 import { Polyfills } from './tailwindcss'
 import { substituteAtApply } from './tailwindcss/apply'
@@ -21,6 +22,7 @@ import { ThemeOptions } from './tailwindcss/theme'
 import { escape } from './tailwindcss/utils/escape'
 import { DEFAULT_THEME } from './theme'
 import { parseCss } from './utilities/css-parse'
+import { markUsedTransientVariables } from './utilities/mark-used-transient-variables'
 import { sortAstNodes } from './utilities/sort-ast-nodes'
 import { substituteAtVariant } from './utilities/substitute-at-variant'
 
@@ -30,6 +32,7 @@ const polyfills = Polyfills.ColorMix
 export interface Options {
   directory?: string
   loadStyleSheet?: (id: string, directory: string) => Promise<{ base: string; content: string }>
+  pangram?: PangramOptions
   theme?: string
   themeSelector?: string
 }
@@ -48,7 +51,7 @@ export class Compiler {
   async reset(options: Options = {}) {
     this.options = {
       ...options,
-      themeSelector: options.themeSelector ?? ':where(:root,:host,::backdrop,::selection)',
+      themeSelector: options.themeSelector ?? ':where(:root,:host)',
     }
 
     const { ast, designSystem } = await parseCss({
@@ -59,6 +62,9 @@ export class Compiler {
 
     vue(designSystem)
     colorScheme(designSystem)
+    pangram(designSystem, options.pangram)
+
+    // designSystem.theme.add('--margin-2xl', 'var(---spacing-2xl)', ThemeOptions.DEFAULT)
 
     // @ts-expect-error private
     this.themeValues = Array.from(designSystem.theme.values.entries())
@@ -129,6 +135,8 @@ export class Compiler {
     if (astNodes.length !== 0) {
       astNodes.unshift(comment(` caslon-utilities: ${[...validCandidates].join(', ')} `))
     }
+
+    markUsedTransientVariables(astNodes, this.designSystem)
 
     const result = optimizeAst(
       [...structuredClone(this.themeAst), atRule('@layer', 'utilities', astNodes)],

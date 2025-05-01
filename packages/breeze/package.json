@@ -7,6 +7,7 @@
   },
   "bugs": "https://github.com/escapace/caslon/issues",
   "devDependencies": {
+    "@caslon/utopia": "workspace:*",
     "@ls-lint/ls-lint": "2.3.0",
     "@types/node": "22.14.0",
     "@vitest/coverage-v8": "3.1.1",

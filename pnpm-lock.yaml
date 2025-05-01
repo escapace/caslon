@@ -44,6 +44,9 @@ importers:
 
   packages/breeze:
     devDependencies:
+      '@caslon/utopia':
+        specifier: workspace:*
+        version: link:../utopia
       '@ls-lint/ls-lint':
         specifier: 2.3.0
         version: 2.3.0
