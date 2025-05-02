@@ -2,7 +2,7 @@ import { Compiler, type Options as BreezeOptions } from '@caslon/breeze'
 import { Scanner, type ChangedContent } from '@tailwindcss/oxide'
 import type { Options as VueOptions } from '@vitejs/plugin-vue'
 import {
-  parse,
+  parse as _parseSFC,
   type SFCScriptBlock,
   type SFCStyleBlock,
   type SFCTemplateBlock,
@@ -62,6 +62,8 @@ const createProperties = (options: Options | undefined, config: ResolvedConfig) 
   // const componentIdGenerator = vueOptions?.features?.componentIdGenerator
   const isProduction = vueOptions.isProduction ?? config.isProduction
 
+  const parseSFC = vueOptions.compiler?.parse ?? _parseSFC
+
   // https://github.com/vitejs/vite-plugin-vue/blob/main/packages/plugin-vue/src/utils/descriptorCache.ts
   // const componentId = (filename: string, source: string) => {
   //   const normalizedPath = normalizePath(path.relative(config.root, filename))
@@ -99,6 +101,7 @@ const createProperties = (options: Options | undefined, config: ResolvedConfig) 
     filterScoped,
     filterVue,
     isProduction,
+    parseSFC,
     pathFileTheme,
     root,
     vueOptions,
@@ -239,7 +242,7 @@ export function caslon(options?: Options): Plugin[] {
 
     const magic = new MagicString(code, { filename: filePath })
 
-    const parseResult = parse(code, {
+    const parseResult = properties.parseSFC(code, {
       sourceMap: true,
       templateParseOptions: properties.vueOptions?.template?.compilerOptions,
     })
@@ -417,7 +420,7 @@ export function caslon(options?: Options): Plugin[] {
       enforce: 'pre',
       handleHotUpdate: {
         async handler(context) {
-          const state = properties.state.get(context.file)
+          let state = properties.state.get(context.file)
 
           const invalidatedModules = new Set<ModuleNode>()
           const nodes = new Set<ModuleNode>(context.modules)
@@ -443,47 +446,62 @@ export function caslon(options?: Options): Plugin[] {
               ?.forEach((value) => nodes.add(value)),
           )
 
-          if (state !== undefined) {
+          if (state === undefined) {
+            if (properties.filterVue(context.file)) {
+              await transformSFC(context.file)
+            } else {
+              return
+            }
+          }
+
+          state = properties.state.get(context.file)
+
+          if (state?.type === 'theme') {
+            for (const node of nodes) {
+              context.server.moduleGraph.invalidateModule(
+                node,
+                invalidatedModules,
+                context.timestamp,
+                true,
+              )
+            }
+
             if (state.type === 'theme') {
-              for (const node of nodes) {
-                context.server.moduleGraph.invalidateModule(
-                  node,
-                  invalidatedModules,
-                  context.timestamp,
-                  true,
-                )
-              }
+              await reset()
+            }
 
-              if (state.type === 'theme') {
-                await reset()
-              }
+            context.server.ws.send({ type: 'full-reload' })
+            return []
+          } else if (state?.type === 'sfc' || state?.type === 'style') {
+            if (state.type === 'style') {
+              await transformSFC(state.sfc)
 
-              context.server.ws.send({ type: 'full-reload' })
-              return []
-            } else if (state.type === 'sfc' || state.type === 'style') {
-              if (state.type === 'style') {
-                await transformSFC(state.sfc)
-              }
-
-              // const read = context.read
-              // context.read = async () => {
-              //   const code = await read()
-              //   return (await transformSFC(context.file, code))?.code ?? code
+              // const nodeSFC = [...nodes].find((value) => value.id === state.sfc)
+              //
+              // if (nodeSFC !== undefined) {
+              //   console.log(nodeSFC)
+              //   await context.server.reloadModule(nodeSFC)
               // }
+            }
 
-              // for (const node of nodes) {
-              //   context.server.moduleGraph.invalidateModule(
-              //     node,
-              //     invalidatedModules,
-              //     context.timestamp,
-              //     true,
-              //   )
-              // }
-              // (await properties.handleHotUpdate(context)) ?? []
+            // const read = context.read
+            // context.read = async () => {
+            //   const code = await read()
+            //   return (await transformSFC(context.file, code))?.code ?? code
+            // }
 
-              for (const node of nodes) {
-                await context.server.reloadModule(node)
-              }
+            // for (const node of nodes) {
+            //   context.server.moduleGraph.invalidateModule(
+            //     node,
+            //     invalidatedModules,
+            //     context.timestamp,
+            //     true,
+            //   )
+            // }
+            // (await properties.handleHotUpdate(context)) ?? []
+
+            for (const node of nodes) {
+              await context.server.reloadModule(node)
             }
           }
 

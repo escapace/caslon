@@ -7,17 +7,17 @@
   },
   "bugs": "https://github.com/escapace/caslon/issues",
   "devDependencies": {
-    "@commitlint/cli": "19.7.1",
-    "@commitlint/config-conventional": "19.7.1",
-    "@escapace/pnpm-pack": "0.5.4",
-    "@ls-lint/ls-lint": "2.2.3",
-    "eslint": "9.19.0",
-    "eslint-config-escapace": "5.4.2",
-    "knip": "5.43.6",
-    "lefthook": "1.10.10",
-    "prettier": "3.4.2",
+    "@commitlint/cli": "19.8.0",
+    "@commitlint/config-conventional": "19.8.0",
+    "@escapace/pnpm-pack": "0.6.0",
+    "@ls-lint/ls-lint": "2.3.0",
+    "eslint": "9.25.1",
+    "eslint-config-escapace": "5.5.3",
+    "knip": "5.52.0",
+    "lefthook": "1.11.12",
+    "prettier": "3.5.3",
     "prettier-config-escapace": "1.2.1",
-    "syncpack": "13.0.2"
+    "syncpack": "13.0.4"
   },
   "engines": {
     "pnpm": ">=10.10.0"

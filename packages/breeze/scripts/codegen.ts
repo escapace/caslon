@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import * as zx from 'zx'
 import { $ } from 'zx'
 
-const TAILWINDS_REF = 'v4.1.4'
+const TAILWINDS_REF = 'v4.1.5'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -29,9 +29,9 @@ const patches = (
 ).sort((x, y) => collator.compare(x, y))
 
 for (const patch of patches) {
-  await $`git apply --check ${patch}`
+  await $`git apply --whitespace=fix --check ${patch}`
 }
 
 for (const patch of patches) {
-  await $`git apply ${patch}`
+  await $`git apply --whitespace=fix ${patch}`
 }
