@@ -7,7 +7,6 @@ import { substituteAtApply } from './tailwindcss/apply'
 import {
   toCss as _toCss,
   atRule,
-  comment,
   decl,
   optimizeAst,
   styleRule,
@@ -28,13 +27,12 @@ import { substituteAtVariant } from './utilities/substitute-at-variant'
 
 const polyfills = Polyfills.ColorMix
 
-// TODO: move themeSelector to theme?
 export interface Options {
   directory?: string
   loadStyleSheet?: (id: string, directory: string) => Promise<{ base: string; content: string }>
   pangram?: PangramOptions
+  selector?: string
   theme?: string
-  themeSelector?: string
 }
 
 const toCss = (value: AstNode[]) =>
@@ -44,14 +42,14 @@ const toCss = (value: AstNode[]) =>
 
 export class Compiler {
   public designSystem!: DesignSystem
-  public options!: Pick<Options, 'theme'> & Required<Pick<Options, 'themeSelector'>>
+  public options!: Pick<Options, 'theme'> & Required<Pick<Options, 'selector'>>
   public themeAst!: AstNode[]
   public themeValues!: ReadonlyArray<[string, { options: ThemeOptions; value: string }]>
 
   async reset(options: Options = {}) {
     this.options = {
       ...options,
-      themeSelector: options.themeSelector ?? ':where(:root,:host)',
+      selector: options.selector ?? ':where(:root,:host)',
     }
 
     const { ast, designSystem } = await parseCss({
@@ -64,9 +62,6 @@ export class Compiler {
     colorScheme(designSystem)
     pangram(designSystem, options.pangram)
 
-    // designSystem.theme.add('--margin-2xl', 'var(---spacing-2xl)', ThemeOptions.DEFAULT)
-
-    // @ts-expect-error private
     this.themeValues = Array.from(designSystem.theme.values.entries())
 
     this.designSystem = designSystem
@@ -132,9 +127,9 @@ export class Compiler {
 
     // console.log(JSON.stringify(this.themeAst, null, 2))
 
-    if (astNodes.length !== 0) {
-      astNodes.unshift(comment(` caslon-utilities: ${[...validCandidates].join(', ')} `))
-    }
+    // if (astNodes.length !== 0) {
+    //   astNodes.unshift(comment(` caslon-utilities: ${[...validCandidates].join(', ')} `))
+    // }
 
     markUsedTransientVariables(astNodes, this.designSystem)
 
@@ -150,12 +145,12 @@ export class Compiler {
       }
     })
 
-    return result
+    return [result, validCandidates] as const
   }
 
   private compileLayers(
     astNodes: AstNode[],
-    options?: Partial<Pick<Options, 'themeSelector'>>,
+    options?: Partial<Pick<Options, 'selector'>>,
   ): {
     keyframes: AstNode[]
     properties: AstNode[]
@@ -204,7 +199,7 @@ export class Compiler {
           'theme',
           theme.length === 0
             ? theme
-            : [styleRule(options?.themeSelector ?? this.options.themeSelector, theme)],
+            : [styleRule(options?.selector ?? this.options.selector, theme)],
         ),
       ],
       utilities,
@@ -225,10 +220,7 @@ export class Compiler {
     return toCss(optimizeAst(ast, this.designSystem, polyfills))
   }
 
-  private candidatesToCss(
-    rawCandidates: string[],
-    options?: Partial<Pick<Options, 'themeSelector'>>,
-  ) {
+  private candidatesToCss(rawCandidates: string[], options?: Partial<Pick<Options, 'selector'>>) {
     const matches = new Map<string, Candidate[]>()
 
     for (const rawCandidate of rawCandidates) {
@@ -251,10 +243,10 @@ export class Compiler {
     //   return
     // }
 
-    const astNodes = this.compileAstNodes(matches)
+    const [astNodes, validCandidates] = this.compileAstNodes(matches)
 
     if (astNodes.length === 0) {
-      return
+      return [undefined, astNodes.length === 0 ? undefined : validCandidates] as const
     }
 
     const layers = this.compileLayers(astNodes, options)
@@ -266,20 +258,45 @@ export class Compiler {
       .filter((value): value is [keyof typeof layers, string] => value[1] !== undefined)
       .map((value) => value[1])
 
-    return array.length === 0 ? undefined : array.join('\n')
+    return array.length === 0
+      ? ([undefined, undefined] as const)
+      : ([array.join('\n'), validCandidates] as const)
   }
 
   public compile(
-    candidates: string[],
-    styles: Array<string | undefined> = [],
-    options?: Partial<Pick<Options, 'themeSelector'>>,
-  ): [base: string | undefined, ...Array<string | undefined>] {
-    // @ts-expect-error private
+    options?: {
+      candidates?: string[]
+      styles?: Array<string | undefined>
+      variables?: string[]
+    } & Partial<Pick<Options, 'selector'>>,
+  ): {
+    candidates: string[]
+    css: string | undefined
+    styles: Array<string | undefined>
+    variables: string[]
+  } {
     this.designSystem.theme.values = new Map(structuredClone(this.themeValues))
 
-    const transformedStyles = styles.map((value) => this.transformStyle(value))
-    const base = this.candidatesToCss(candidates, options)
+    for (const variable of options?.variables ?? []) {
+      this.designSystem.theme.markUsedVariable(variable)
+    }
 
-    return [base, ...transformedStyles]
+    const styles = options?.styles?.map((value) => this.transformStyle(value)) ?? []
+    const [css, candidates] =
+      options?.candidates === undefined ? [] : this.candidatesToCss(options.candidates, options)
+
+    const variables = [...this.designSystem.theme.values]
+      .filter(
+        // eslint-disable-next-line typescript/strict-boolean-expressions
+        ([_, { options }]) => /* !(options & ThemeOptions.INLINE) && */ options & ThemeOptions.USED,
+      )
+      .map(([value]) => value)
+
+    return {
+      candidates: candidates === undefined ? [] : [...candidates],
+      css,
+      styles: styles.every((value) => value === undefined) ? [] : styles,
+      variables,
+    }
   }
 }

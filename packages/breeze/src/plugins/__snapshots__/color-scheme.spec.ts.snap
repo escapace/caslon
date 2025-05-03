@@ -1,21 +1,27 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`color-scheme > colors 1`] = `
-[
-  "@layer utilities {
-  /* caslon-utilities: bg-primary-15-15-10 */
+{
+  "candidates": [
+    "bg-primary-15-15-10",
+  ],
+  "css": "@layer utilities {
   .bg-primary-15-15-10 {
     background-color: var(---color-primary-15-15-10);
   }
 }
 ",
-]
+  "styles": [],
+  "variables": [],
+}
 `;
 
 exports[`color-scheme > colors 2`] = `
-[
-  "@layer utilities {
-  /* caslon-utilities: bg-primary-15-15/10 */
+{
+  "candidates": [
+    "bg-primary-15-15/10",
+  ],
+  "css": "@layer utilities {
   .bg-primary-15-15\\/10 {
     background-color: var(---color-primary-15-15);
     @supports (color: color-mix(in lab, red, red)) {
@@ -24,13 +30,17 @@ exports[`color-scheme > colors 2`] = `
   }
 }
 ",
-]
+  "styles": [],
+  "variables": [],
+}
 `;
 
 exports[`color-scheme > colors 3`] = `
-[
-  "@layer utilities {
-  /* caslon-utilities: bg-primary-15-15/[71.37%] */
+{
+  "candidates": [
+    "bg-primary-15-15/[71.37%]",
+  ],
+  "css": "@layer utilities {
   .bg-primary-15-15\\/\\[71\\.37\\%\\] {
     background-color: var(---color-primary-15-15);
     @supports (color: color-mix(in lab, red, red)) {
@@ -39,25 +49,33 @@ exports[`color-scheme > colors 3`] = `
   }
 }
 ",
-]
+  "styles": [],
+  "variables": [],
+}
 `;
 
 exports[`color-scheme > colors 4`] = `
-[
-  "@layer utilities {
-  /* caslon-utilities: bg-(---color-primary-15-15) */
+{
+  "candidates": [
+    "bg-(---color-primary-15-15)",
+  ],
+  "css": "@layer utilities {
   .bg-\\(---color-primary-15-15\\) {
     background-color: var(---color-primary-15-15);
   }
 }
 ",
-]
+  "styles": [],
+  "variables": [],
+}
 `;
 
 exports[`color-scheme > colors 5`] = `
-[
-  "@layer utilities {
-  /* caslon-utilities: bg-(---color-primary-15-15)/10 */
+{
+  "candidates": [
+    "bg-(---color-primary-15-15)/10",
+  ],
+  "css": "@layer utilities {
   .bg-\\(---color-primary-15-15\\)\\/10 {
     background-color: var(---color-primary-15-15);
     @supports (color: color-mix(in lab, red, red)) {
@@ -66,25 +84,35 @@ exports[`color-scheme > colors 5`] = `
   }
 }
 ",
-]
+  "styles": [],
+  "variables": [],
+}
 `;
 
 exports[`color-scheme > colors 6`] = `
-[
-  "@layer utilities {
-  /* caslon-utilities: bg-[primary-15-15] */
+{
+  "candidates": [
+    "bg-[primary-15-15]",
+  ],
+  "css": "@layer utilities {
   .bg-\\[primary-15-15\\] {
     background-color: primary-15-15;
   }
 }
 ",
-]
+  "styles": [],
+  "variables": [],
+}
 `;
 
 exports[`color-scheme > colors 7`] = `
-[
-  "@layer utilities {
-  /* caslon-utilities: bg-linear-to-t, from-primary-50-50, to-0-50-50 */
+{
+  "candidates": [
+    "bg-linear-to-t",
+    "from-primary-50-50",
+    "to-0-50-50",
+  ],
+  "css": "@layer utilities {
   .bg-linear-to-t {
     --tw-gradient-position: to top;
     @supports (background-image: linear-gradient(in lab, red, red)) {
@@ -145,13 +173,17 @@ exports[`color-scheme > colors 7`] = `
   initial-value: 100%;
 }
 ",
-]
+  "styles": [],
+  "variables": [],
+}
 `;
 
 exports[`color-scheme > light/dark 1`] = `
-[
-  "@layer utilities {
-  /* caslon-utilities: dark:container */
+{
+  "candidates": [
+    "dark:container",
+  ],
+  "css": "@layer utilities {
   .dark\\:container {
     &:not(.light, .light *, .dark, .dark *) {
       @media (prefers-color-scheme: dark) {
@@ -194,13 +226,17 @@ exports[`color-scheme > light/dark 1`] = `
   }
 }
 ",
-]
+  "styles": [],
+  "variables": [],
+}
 `;
 
 exports[`color-scheme > light/dark 2`] = `
-[
-  "@layer utilities {
-  /* caslon-utilities: light:container */
+{
+  "candidates": [
+    "light:container",
+  ],
+  "css": "@layer utilities {
   .light\\:container {
     &:not(.light, .light *, .dark, .dark *) {
       @media (prefers-color-scheme: light) {
@@ -243,5 +279,7 @@ exports[`color-scheme > light/dark 2`] = `
   }
 }
 ",
-]
+  "styles": [],
+  "variables": [],
+}
 `;

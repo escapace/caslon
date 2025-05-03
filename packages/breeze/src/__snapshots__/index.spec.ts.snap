@@ -1,15 +1,20 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`compiler > . 1`] = `
-[
-  "@layer theme {
+{
+  "candidates": [
+    "bg-linear-to-t",
+    "from-sky-50-50",
+    "to-primary-50-50",
+    "animate-spin",
+  ],
+  "css": "@layer theme {
   :where(:root,:host) {
     --animate-spin: spin 1s linear infinite;
   }
 }
 
 @layer utilities {
-  /* caslon-utilities: bg-linear-to-t, from-sky-50-50, to-primary-50-50, animate-spin */
   .animate-spin {
     animation: var(--animate-spin);
   }
@@ -79,19 +84,34 @@ exports[`compiler > . 1`] = `
   }
 }
 ",
-]
+  "styles": [],
+  "variables": [
+    "--animate-spin",
+  ],
+}
 `;
 
 exports[`compiler > . 2`] = `
-[
-  "@layer theme {
+{
+  "candidates": [],
+  "css": undefined,
+  "styles": [],
+  "variables": [],
+}
+`;
+
+exports[`compiler > . 3`] = `
+{
+  "candidates": [
+    "dark:bg-red-50",
+  ],
+  "css": "@layer theme {
   :where(:root,:host) {
     --color-red-50: oklch(97.1% 0.013 17.38);
   }
 }
 
 @layer utilities {
-  /* caslon-utilities: dark:bg-red-50 */
   .dark\\:bg-red-50 {
     &:not(.light, .light *, .dark, .dark *) {
       @media (prefers-color-scheme: dark) {
@@ -104,13 +124,38 @@ exports[`compiler > . 2`] = `
   }
 }
 ",
-]
+  "styles": [],
+  "variables": [
+    "--color-red-50",
+  ],
+}
 `;
 
-exports[`compiler > . 3`] = `
-[
-  "@layer utilities {
-  /* caslon-utilities: content-auto-test, pointer-coarse-test:relative */
+exports[`compiler > . 4`] = `
+{
+  "candidates": [],
+  "css": undefined,
+  "styles": [],
+  "variables": [],
+}
+`;
+
+exports[`compiler > . 5`] = `
+{
+  "candidates": [],
+  "css": undefined,
+  "styles": [],
+  "variables": [],
+}
+`;
+
+exports[`compiler > . 6`] = `
+{
+  "candidates": [
+    "content-auto-test",
+    "pointer-coarse-test:relative",
+  ],
+  "css": "@layer utilities {
   .content-auto-test {
     content-visibility: auto;
   }
@@ -121,12 +166,18 @@ exports[`compiler > . 3`] = `
   }
 }
 ",
-]
+  "styles": [],
+  "variables": [],
+}
 `;
 
-exports[`compiler > . 4`] = `
-[
-  "@layer theme {
+exports[`compiler > . 7`] = `
+{
+  "candidates": [
+    "animate-spin",
+    "rounded-xl",
+  ],
+  "css": "@layer theme {
   :where(:root,:host) {
     --radius-xl: 0.75rem;
     --animate-spin: spin 1s linear infinite;
@@ -134,7 +185,6 @@ exports[`compiler > . 4`] = `
 }
 
 @layer utilities {
-  /* caslon-utilities: animate-spin, rounded-xl */
   .animate-spin {
     animation: var(--animate-spin);
   }
@@ -149,33 +199,36 @@ exports[`compiler > . 4`] = `
   }
 }
 ",
-]
+  "styles": [],
+  "variables": [
+    "--radius-xl",
+    "--animate-spin",
+  ],
+}
 `;
 
-exports[`compiler > . 5`] = `
-[
-  "@layer utilities {
-  /* caslon-utilities: relative */
+exports[`compiler > . 8`] = `
+{
+  "candidates": [
+    "relative",
+  ],
+  "css": "@layer utilities {
   .relative {
     position: relative;
   }
 }
 ",
-]
+  "styles": [],
+  "variables": [],
+}
 `;
 
-exports[`compiler > . 6`] = `
-[
-  "@layer theme {
-  :where(:root,:host) {
-    --color-amber-50: oklch(98.7% 0.022 95.277);
-    --color-amber-200: oklch(92.4% 0.12 95.746);
-    --color-gray-950: oklch(13% 0.028 261.692);
-    --spacing: 0.25rem;
-  }
-}
-",
-  ":root {
+exports[`compiler > . 9`] = `
+{
+  "candidates": [],
+  "css": undefined,
+  "styles": [
+    ":root {
   &:not(.light, .light *, .dark, .dark *) {
     @media (prefers-color-scheme: dark) {
       background-color: var(--color-amber-200);
@@ -192,5 +245,32 @@ exports[`compiler > . 6`] = `
   }
 }
 ",
-]
+  ],
+  "variables": [
+    "--color-amber-50",
+    "--color-amber-200",
+    "--color-gray-950",
+    "--spacing",
+  ],
+}
+`;
+
+exports[`compiler > . 10`] = `
+{
+  "candidates": [],
+  "css": undefined,
+  "styles": [],
+  "variables": [],
+}
+`;
+
+exports[`compiler > . 11`] = `
+{
+  "candidates": [],
+  "css": undefined,
+  "styles": [],
+  "variables": [
+    "--color-red-500",
+  ],
+}
 `;

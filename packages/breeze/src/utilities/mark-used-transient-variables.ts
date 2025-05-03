@@ -11,7 +11,6 @@ export function markUsedTransientVariables(ast: AstNode[], designSystem: DesignS
     }
 
     const variables = extractUsedVariables(value)
-    // console.log(value)
 
     for (const variable of variables) {
       if (seen.has(variable)) {

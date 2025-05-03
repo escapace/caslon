@@ -7,6 +7,7 @@ import {
   type SFCStyleBlock,
   type SFCTemplateBlock,
 } from '@vue/compiler-sfc'
+import { remove } from 'lodash-es'
 import MagicString, { type SourceMap } from 'magic-string'
 import assert from 'node:assert'
 import { readFile } from 'node:fs/promises'
@@ -14,17 +15,9 @@ import path from 'node:path'
 import type { ModuleNode, Plugin, ResolvedConfig, TransformResult, ViteDevServer } from 'vite'
 import { createFilter } from 'vite'
 import { isFile } from './utilities/is-file'
+import { parseVueRequest, parseVueStyleRequest } from './utilities/parse-vue-request'
 
-// TODO: https://github.com/intlify/bundle-tools/tree/main/packages/unplugin-vue-i18n/src
-
-// import { createHash } from 'node:crypto'
-//
-// // https://github.com/vitejs/vite-plugin-vue/blob/main/packages/plugin-vue/src/utils/descriptorCache.ts
-// export function getHash(text: string): string {
-//   return createHash('sha256').update(text).digest('hex').substring(0, 8)
-// }
-
-interface Options extends Pick<BreezeOptions, 'pangram' | 'themeSelector'> {
+interface Options extends Pick<BreezeOptions, 'pangram' | 'selector'> {
   exclude?: string | ReadonlyArray<string | RegExp> | RegExp
   include?: string | ReadonlyArray<string | RegExp> | RegExp
   scoped?: boolean | string | ReadonlyArray<string | RegExp> | RegExp
@@ -59,25 +52,18 @@ const createProperties = (options: Options | undefined, config: ResolvedConfig) 
 
   assert(typeof handleHotUpdate === 'function')
 
-  // const componentIdGenerator = vueOptions?.features?.componentIdGenerator
   const isProduction = vueOptions.isProduction ?? config.isProduction
 
   const parseSFC = vueOptions.compiler?.parse ?? _parseSFC
 
-  // https://github.com/vitejs/vite-plugin-vue/blob/main/packages/plugin-vue/src/utils/descriptorCache.ts
-  // const componentId = (filename: string, source: string) => {
-  //   const normalizedPath = normalizePath(path.relative(config.root, filename))
-  //
-  //   if (componentIdGenerator === 'filePath') {
-  //     return getHash(normalizedPath)
-  //   } else if (componentIdGenerator === 'filePath-source') {
-  //     return getHash(normalizedPath + source)
-  //   } else if (typeof componentIdGenerator === 'function') {
-  //     return componentIdGenerator(normalizedPath, source, isProduction, getHash)
-  //   } else {
-  //     return getHash(normalizedPath + (isProduction ? source : ''))
-  //   }
-  // }
+  const cssPlugin = config.plugins.find((value) => value.name === 'vite:css-post')
+
+  const cssTransform =
+    cssPlugin?.transform !== undefined && 'handler' in cssPlugin.transform
+      ? cssPlugin?.transform.handler
+      : cssPlugin?.transform
+
+  assert(typeof cssTransform === 'function')
 
   const state = new Map<string, State>()
 
@@ -92,7 +78,11 @@ const createProperties = (options: Options | undefined, config: ResolvedConfig) 
         : false,
   }
 
+  const compiler = new Compiler()
+
   return {
+    compiler,
+    cssTransform,
     handleHotUpdate,
     mode,
     sourcemap,
@@ -113,7 +103,10 @@ interface StateTheme {
 }
 
 interface StateSFC {
+  candidates: string[]
+  scoped: boolean
   type: 'sfc'
+  variables: string[]
 }
 
 interface StateStyle {
@@ -162,52 +155,6 @@ const resolveSFCBlockContent = async (
   return undefined
 }
 
-const parseStyleId = (id: string) => {
-  const url = URL.parse(`file://${id}`)
-
-  if (url === null) {
-    return
-  }
-
-  const { pathname: filePath, searchParams: query } = url
-
-  if (query.get('vue') !== '') {
-    return
-  }
-
-  if (query.get('type') !== 'style') {
-    return
-  }
-
-  if (query.get('lang.css') !== '') {
-    return
-  }
-
-  const queryIndex = query.get('index')
-
-  if (queryIndex === null) {
-    return
-  }
-
-  const index = parseInt(queryIndex)
-
-  if (isNaN(index)) {
-    return
-  }
-
-  let scoped = query.get('scoped') ?? undefined
-
-  if (scoped?.length === 0) {
-    scoped = undefined
-  }
-
-  return {
-    filePath,
-    index,
-    scoped,
-  }
-}
-
 export function caslon(options?: Options): Plugin[] {
   let properties: {
     addWatchFile?: (id: string) => void
@@ -217,10 +164,7 @@ export function caslon(options?: Options): Plugin[] {
     warn?: (message: string) => never
   } & ReturnType<typeof createProperties>
 
-  const compiler = new Compiler()
-
   const updateState = (id: string, state: State) => {
-    // TODO: no need on build
     properties?.addWatchFile?.(id)
     properties.server?.watcher.add?.(id)
 
@@ -276,15 +220,15 @@ export function caslon(options?: Options): Plugin[] {
       }),
     )
 
-    const [theme, ...compiledStyles] = compiler.compile(
+    const {
+      css: theme,
+      styles: compiledStyles,
+      ...candidatesAndVariables
+    } = properties.compiler.compile({
       candidates,
-      styles.map((value) => value?.content),
-      {
-        themeSelector: scoped ? PLACEHOLDER : undefined,
-      },
-    )
-
-    // let indexOffset = 0
+      selector: scoped ? PLACEHOLDER : undefined,
+      styles: styles.map((value) => value?.content),
+    })
 
     if (theme !== undefined) {
       const style = `\n\n<style${scoped ? ' scoped' : ''}>\n${theme}\n</style>\n\n`
@@ -311,7 +255,6 @@ export function caslon(options?: Options): Plugin[] {
             .sort((a, b) => b - a)[0] ?? 0
 
         magic.prependRight(offset, style)
-        // indexOffset = 1
       }
     }
 
@@ -327,7 +270,6 @@ export function caslon(options?: Options): Plugin[] {
 
         magic.overwrite(start.offset, end.offset, `\n${code}\n`)
       } else {
-        // TODO: existing sourceMaps
         const magic = new MagicString(style.content)
 
         magic.update(0, magic.length(), code)
@@ -348,7 +290,7 @@ export function caslon(options?: Options): Plugin[] {
     const magicHasChanged = magic.hasChanged()
 
     if (magicHasChanged || styles.some((value) => typeof value?.filePath === 'string')) {
-      updateState(filePath, { type: 'sfc' })
+      updateState(filePath, { scoped, type: 'sfc', ...candidatesAndVariables })
     }
 
     return magicHasChanged
@@ -377,7 +319,7 @@ export function caslon(options?: Options): Plugin[] {
       updateState(properties.pathFileTheme, { type: 'theme' })
     }
 
-    await compiler.reset({
+    await properties.compiler.reset({
       directory: theme ? path.dirname(properties.pathFileTheme) : undefined,
       loadStyleSheet: async (id, directory) => {
         const filePath = path.resolve(directory, id)
@@ -389,12 +331,93 @@ export function caslon(options?: Options): Plugin[] {
         return { base, content }
       },
       pangram: options?.pangram,
+      selector: options?.selector,
       theme: theme ? await readFile(properties.pathFileTheme, 'utf8') : undefined,
-      themeSelector: options?.themeSelector,
     })
   }
 
   return [
+    {
+      enforce: 'pre',
+      name: 'test',
+      async renderChunk(_, chunk) {
+        const variables = new Set<string>()
+        const candidates = new Set<string>()
+        const modulesToRemove = new Set<string>()
+
+        for (const [id] of Object.entries(chunk.modules)) {
+          const request = parseVueRequest(id)
+
+          if (request === undefined) {
+            continue
+          }
+
+          const { filePath } = request
+
+          if (properties.state.has(filePath)) {
+            // eslint-disable-next-line typescript/no-non-null-assertion
+            const state = properties.state.get(filePath)!
+
+            assert(state.type !== 'theme')
+
+            if (
+              state.type === 'sfc' &&
+              !state.scoped &&
+              request.vue &&
+              request.type === 'style' &&
+              request.lang === 'css' &&
+              request.index === 0
+            ) {
+              for (const variable of state.variables) {
+                variables.add(variable)
+              }
+
+              for (const candidate of state.candidates) {
+                candidates.add(candidate)
+              }
+
+              modulesToRemove.add(id)
+            }
+          }
+        }
+
+        if (variables.size === 0 && candidates.size === 0) {
+          return
+        }
+
+        for (const id of modulesToRemove) {
+          remove(chunk.moduleIds, (value) => value === id)
+          remove(chunk.dynamicImports, (value) => value === id)
+          remove(chunk.exports, (value) => value === id)
+          remove(chunk.imports, (value) => value === id)
+
+          Reflect.deleteProperty(chunk.modules, id)
+        }
+
+        const name = `${chunk.fileName}.css`
+
+        const { css } = properties.compiler.compile({
+          candidates: [...candidates],
+          selector: options?.selector,
+          variables: [...variables],
+        })
+
+        if (css === undefined) {
+          return
+        }
+
+        // eslint-disable-next-line typescript/no-explicit-any, typescript/no-unsafe-argument
+        await properties.cssTransform.call(this as any, css, name)
+
+        chunk.modules[name] = {
+          code: null,
+          originalLength: 0,
+          removedExports: [],
+          renderedExports: [],
+          renderedLength: 0,
+        }
+      },
+    },
     {
       async buildStart() {
         const { addWatchFile: watchFile, error, info, warn } = this
@@ -475,30 +498,7 @@ export function caslon(options?: Options): Plugin[] {
           } else if (state?.type === 'sfc' || state?.type === 'style') {
             if (state.type === 'style') {
               await transformSFC(state.sfc)
-
-              // const nodeSFC = [...nodes].find((value) => value.id === state.sfc)
-              //
-              // if (nodeSFC !== undefined) {
-              //   console.log(nodeSFC)
-              //   await context.server.reloadModule(nodeSFC)
-              // }
             }
-
-            // const read = context.read
-            // context.read = async () => {
-            //   const code = await read()
-            //   return (await transformSFC(context.file, code))?.code ?? code
-            // }
-
-            // for (const node of nodes) {
-            //   context.server.moduleGraph.invalidateModule(
-            //     node,
-            //     invalidatedModules,
-            //     context.timestamp,
-            //     true,
-            //   )
-            // }
-            // (await properties.handleHotUpdate(context)) ?? []
 
             for (const node of nodes) {
               await context.server.reloadModule(node)
@@ -510,77 +510,8 @@ export function caslon(options?: Options): Plugin[] {
         order: 'pre',
       },
 
-      // load: {
-      //   async handler(id) {
-      //     if (properties.state.get(id)?.type === 'theme') {
-      //       await reset()
-      //
-      //       return { code: '', moduleSideEffects: false }
-      //     } else if (properties.filterVue(id)) {
-      //       return await transformSFC(id)
-      //     } else {
-      //       const value = parseStyleId(id)
-      //
-      //       if (value === undefined) {
-      //         return
-      //       }
-      //
-      //       const { filePath } = value
-      //
-      //       const state = properties.state.get(filePath)
-      //
-      //       if (state?.type === 'style') {
-      //         return {
-      //           code: state.code,
-      //           map: state.map,
-      //         }
-      //       }
-      //
-      //       return
-      //     }
-      //   },
-      //   order: 'pre',
-      // },
-      //
-      // transform: {
-      //   handler(code, id) {
-      //     const value = parseStyleId(id)
-      //
-      //     if (value === undefined) {
-      //       return
-      //     }
-      //
-      //     const { filePath, scoped } = value
-      //
-      //     const state = properties.state.get(filePath)
-      //
-      //     if (state?.type === 'sfc' && code.includes(PLACEHOLDER) && scoped !== undefined) {
-      //       const magic = new MagicString(code)
-      //
-      //       magic.replaceAll(PLACEHOLDER, `:global([data-v-${scoped}])`)
-      //
-      //       return magic.hasChanged()
-      //         ? {
-      //             code: magic.toString(),
-      //             map: properties.sourcemap.css
-      //               ? magic.generateMap({
-      //                   hires: true,
-      //                   includeContent: true,
-      //                   source: filePath,
-      //                 })
-      //               : null,
-      //           }
-      //         : undefined
-      //     }
-      //
-      //     return
-      //   },
-      //   order: 'pre',
-      // },
-
       transform: {
         async handler(code, id) {
-          // TODO: move this to load?
           if (properties.state.get(id)?.type === 'theme') {
             await reset()
 
@@ -588,7 +519,7 @@ export function caslon(options?: Options): Plugin[] {
           } else if (properties.filterVue(id)) {
             return await transformSFC(id, code)
           } else {
-            const value = parseStyleId(id)
+            const value = parseVueStyleRequest(id)
 
             if (value === undefined) {
               return
@@ -644,7 +575,7 @@ export function caslon(options?: Options): Plugin[] {
           return true
         }
 
-        const filePath = parseStyleId(id)?.filePath
+        const filePath = parseVueStyleRequest(id)?.filePath
 
         if (typeof filePath === 'string' && properties.state.has(filePath)) {
           return true
@@ -655,163 +586,3 @@ export function caslon(options?: Options): Plugin[] {
     },
   ]
 }
-
-// const nodes = moduleGraph.getModulesByFile(state.sfc)
-// TODO: find a better way to do this
-// context.server.ws.send({ type: 'full-reload' })
-// context.server.moduleGraph
-// if (nodes !== undefined) {
-//
-//   // return [nodeSFCMain]
-//   // for (const node of nodes) {
-//
-//     // moduleGraph.invalidateModule(node, invalidatedModules, context.timestamp, true)
-//   // }
-//
-//   // console.log(nodeSFCMain)
-// }
-
-// if (state.type === 'theme') {
-//   moduleGraph.invalidateModule()
-//   context.server.ws.send({ type: 'full-reload' })
-//
-//   await reset()
-//
-//   return []
-// }
-//
-// if (invalidatedModules.size === 0) {
-//   return
-// }
-//
-// for (const bla of context.modules) {
-//   context.server.moduleGraph.invalidateModule(bla)
-// }
-
-// context.server.ws.send({ type: 'full-reload' })
-
-// for (const bla of context.modules) {
-//   context.server.moduleGraph.invalidateModule(bla)
-// }
-// return context.modules
-// const asd = context.server.moduleGraph.getModulesByFile(file)
-//
-// console.log(asd)
-
-// console.log(file, context.modules)
-//
-
-// return
-// return context.modules
-// return await properties.handleHotUpdate(context)
-// context.server.moduleGraph.invalidateAll()
-// return undefined
-//
-// const newState = properties.state.get(filePath)
-//
-// if (newState?.type === 'style') {
-//   const { code } = newState
-//
-//   Object.assign(context, {
-//     read: () => code,
-//   })
-// }
-
-// await transformSFC(filePath)
-
-// const transformResult = await context.server.transformRequest(nodeSFCMain.url)
-// moduleGraph.updateModuleTransformResult(nodeSFCMain, transformResult, false)
-
-// context.server.watcher.emit('change', node.id)
-// context.modules
-// if (newSFC !== undefined) {
-//   // const nodesHMR = await properties.handleHotUpdate({
-//   //   file: state.sfc,
-//   //   modules: [...invalidatedModules],
-//   //   read: () => newSFC.code,
-//   //   server: context.server,
-//   //   timestamp: context.timestamp,
-//   // }) ?? []
-//
-//   // moduleGraph.updateModuleTransformResult(mod, result)
-// }
-
-// if (state.type === 'sfc') {
-// } else {
-//   // const newSFC = await transformSFC(state.sfc)
-//
-//   // if (newSFC !== undefined) {
-//   //   console.log(properties.handleHotUpdate)
-//   //
-//   //   properties.handleHotUpdate({
-//   //     file: state.sfc,
-//   //     modules: [...invalidatedModules],
-//   //     read: () => newSFC.code,
-//   //     server: context.server,
-//   //     timestamp: context.timestamp,
-//   //   })
-//   // }
-//
-//
-//   return [...invalidatedModules]
-// }
-//{
-//   async handler(context) {
-//     const { file: filePath } = context
-//
-//     const state = properties.state.get(filePath)
-//
-//     if (state === undefined) {
-//       return
-//     }
-//
-//     const { moduleGraph } = context.server
-//     const invalidatedModules = new Set<ModuleNode>()
-//
-//     if (state.type === 'theme') {
-//       for (const filePath of properties.state.keys()) {
-//         const nodes = moduleGraph.getModulesByFile(filePath)
-//
-//         if (nodes === undefined) {
-//           continue
-//         }
-//
-//         for (const node of nodes) {
-//           moduleGraph.invalidateModule(node, invalidatedModules, context.timestamp, true)
-//         }
-//       }
-//
-//       for (const node of context.modules) {
-//         moduleGraph.invalidateModule(node, invalidatedModules, context.timestamp, true)
-//       }
-//
-//       await reset()
-//       context.server.ws.send({ type: 'full-reload' })
-//       return []
-//     } else if (state.type === 'sfc' || state.type === 'style') {
-//       const nodes = new Set(context.modules)
-//
-//       ;[filePath, state.type === 'style' ? state.sfc : undefined].forEach((value) => {
-//         if (value === undefined) {
-//           return
-//         }
-//
-//         moduleGraph.getModulesByFile(value)?.forEach((value) => nodes.add(value))
-//       })
-//
-//       // const filePathSFC = state.type === 'style' ? state.sfc : filePath
-//
-//       // const sfc = moduleGraph.getModulesByFile(filePathSFC) ?? []
-//
-//       // return nodes
-//       for (const node of nodes) {
-//         moduleGraph.invalidateModule(node, invalidatedModules, context.timestamp, true)
-//       }
-//
-//       return []
-//     }
-//
-//     return
-//   },
-//   order: 'post',
-// }

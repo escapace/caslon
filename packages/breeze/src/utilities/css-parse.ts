@@ -27,7 +27,7 @@ import { segment } from '../tailwindcss/utils/segment'
 import { compoundsForSelectors, IS_VALID_VARIANT_NAME } from '../tailwindcss/variants'
 import { substituteAtVariant } from './substitute-at-variant'
 
-const IS_VALID_PREFIX = /^[a-z]+$/
+// const IS_VALID_PREFIX = /^[a-z]+$/
 
 function parseThemeOptions(parameters: string) {
   let options = ThemeOptions.NONE
@@ -203,13 +203,15 @@ export const parseCss = async (options: {
       }
 
       if (themePrefix) {
-        if (!IS_VALID_PREFIX.test(themePrefix)) {
-          throw new Error(
-            `The prefix "${themePrefix}" is invalid. Prefixes must be lowercase ASCII letters (a-z) only.`,
-          )
-        }
+        // if (!IS_VALID_PREFIX.test(themePrefix)) {
+        //   throw new Error(
+        //     `The prefix "${themePrefix}" is invalid. Prefixes must be lowercase ASCII letters (a-z) only.`,
+        //   )
+        // }
 
-        theme.prefix = themePrefix
+        throw new Error(`Theme prefix is not supported.`)
+
+        // theme.prefix = themePrefix
       }
 
       // Record all custom properties in the `@theme` declaration

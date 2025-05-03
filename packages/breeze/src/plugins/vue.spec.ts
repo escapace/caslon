@@ -6,8 +6,8 @@ describe('vue', () => {
     const compiler = new Compiler()
     await compiler.reset()
 
-    expect(compiler.compile(['global:container'])).toMatchSnapshot()
-    expect(compiler.compile(['slotted:container'])).toMatchSnapshot()
-    expect(compiler.compile(['deep:container'])).toMatchSnapshot()
+    expect(compiler.compile({ candidates: ['global:container'] })).toMatchSnapshot()
+    expect(compiler.compile({ candidates: ['slotted:container'] })).toMatchSnapshot()
+    expect(compiler.compile({ candidates: ['deep:container'] })).toMatchSnapshot()
   })
 })

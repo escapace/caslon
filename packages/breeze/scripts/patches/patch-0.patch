@@ -1,8 +1,8 @@
-diff --git i/packages/tailwindcss/src/caslon.ts w/packages/tailwindcss/src/caslon.ts
+diff --git c/packages/tailwindcss/src/caslon.ts i/packages/tailwindcss/src/caslon.ts
 new file mode 100644
 index 00000000..5be21a7f
 --- /dev/null
-+++ w/packages/tailwindcss/src/caslon.ts
++++ i/packages/tailwindcss/src/caslon.ts
 @@ -0,0 +1,43 @@
 +import type { Candidate } from "./candidate"
 +
@@ -47,30 +47,45 @@ index 00000000..5be21a7f
 +
 +  return null
 +}
-diff --git i/packages/tailwindcss/src/utilities.ts w/packages/tailwindcss/src/utilities.ts
+diff --git c/packages/tailwindcss/src/theme.ts i/packages/tailwindcss/src/theme.ts
+index 74375b6f..f7cbd619 100644
+--- c/packages/tailwindcss/src/theme.ts
++++ i/packages/tailwindcss/src/theme.ts
+@@ -40,8 +40,8 @@ export class Theme {
+   public prefix: string | null = null
+ 
+   constructor(
+-    private values = new Map<string, { value: string; options: ThemeOptions }>(),
+-    private keyframes = new Set<AtRule>([]),
++    public values = new Map<string, { value: string; options: ThemeOptions }>(),
++    public keyframes = new Set<AtRule>([]),
+   ) {}
+ 
+   add(key: string, value: string, options = ThemeOptions.NONE): void {
+diff --git c/packages/tailwindcss/src/utilities.ts i/packages/tailwindcss/src/utilities.ts
 index 1b6abc60..41eb03b9 100644
---- i/packages/tailwindcss/src/utilities.ts
-+++ w/packages/tailwindcss/src/utilities.ts
+--- c/packages/tailwindcss/src/utilities.ts
++++ i/packages/tailwindcss/src/utilities.ts
 @@ -26,6 +26,8 @@ import { replaceShadowColors } from './utils/replace-shadow-colors'
  import { segment } from './utils/segment'
  import * as ValueParser from './value-parser'
-
+ 
 +import { resolveCepheusColor } from './caslon'
 +
  const IS_VALID_STATIC_UTILITY_NAME = /^-?[a-z][a-zA-Z0-9/%._-]*$/
  const IS_VALID_FUNCTIONAL_UTILITY_NAME = /^-?[a-z][a-zA-Z0-9/%._-]*-\*$/
-
+ 
 @@ -70,13 +72,13 @@ type CompileFn<T extends Candidate['kind']> = (
    value: Extract<Candidate, { kind: T }>,
  ) => AstNode[] | undefined | null
-
+ 
 -interface SuggestionGroup {
 +export interface SuggestionGroup {
    supportsNegative?: boolean
    values: (string | null)[]
    modifiers: string[]
  }
-
+ 
 -type SuggestionDefinition =
 +export type SuggestionDefinition =
    | string
@@ -100,7 +115,7 @@ index 1b6abc60..41eb03b9 100644
 @@ -280,6 +287,16 @@ function resolveThemeColor<T extends ThemeKey>(
   */
  const LEGACY_NUMERIC_KEY = /(\d+)_(\d+)/g
-
+ 
 +export type UtilityDescription = {
 +  supportsNegative?: boolean
 +  supportsFractions?: boolean
@@ -113,11 +128,11 @@ index 1b6abc60..41eb03b9 100644
 +
  export function createUtilities(theme: Theme) {
    let utilities = new Utilities()
-
+ 
 @@ -366,16 +383,6 @@ export function createUtilities(theme: Theme) {
      })
    }
-
+ 
 -  type UtilityDescription = {
 -    supportsNegative?: boolean
 -    supportsFractions?: boolean
@@ -134,7 +149,7 @@ index 1b6abc60..41eb03b9 100644
 @@ -5725,6 +5732,14 @@ export function createUtilities(theme: Theme) {
      },
    ])
-
+ 
 +  Object.assign(utilities, {
 +    references: {
 +      functionalUtility,
@@ -145,17 +160,17 @@ index 1b6abc60..41eb03b9 100644
 +
    return utilities
  }
-
-diff --git i/packages/tailwindcss/src/variants.ts w/packages/tailwindcss/src/variants.ts
+ 
+diff --git c/packages/tailwindcss/src/variants.ts i/packages/tailwindcss/src/variants.ts
 index 701f08c0..30c56224 100644
---- i/packages/tailwindcss/src/variants.ts
-+++ w/packages/tailwindcss/src/variants.ts
+--- c/packages/tailwindcss/src/variants.ts
++++ i/packages/tailwindcss/src/variants.ts
 @@ -1132,7 +1132,7 @@ export function createVariants(theme: Theme): Variants {
    staticVariant('ltr', ['&:where(:dir(ltr), [dir="ltr"], [dir="ltr"] *)'])
    staticVariant('rtl', ['&:where(:dir(rtl), [dir="rtl"], [dir="rtl"] *)'])
-
+ 
 -  staticVariant('dark', ['@media (prefers-color-scheme: dark)'])
 +  // staticVariant('dark', ['@media (prefers-color-scheme: dark)'])
-
+ 
    staticVariant('starting', ['@starting-style'])
-
+ 

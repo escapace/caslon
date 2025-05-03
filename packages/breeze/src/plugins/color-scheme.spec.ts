@@ -6,14 +6,14 @@ describe('color-scheme', () => {
     const compiler = new Compiler()
     await compiler.reset()
 
-    expect(compiler.compile(['bg-primary-15-15-10'])).toMatchSnapshot()
-    expect(compiler.compile(['bg-primary-15-15/10'])).toMatchSnapshot()
-    expect(compiler.compile(['bg-primary-15-15/[71.37%]'])).toMatchSnapshot()
-    expect(compiler.compile(['bg-(---color-primary-15-15)'])).toMatchSnapshot()
-    expect(compiler.compile(['bg-(---color-primary-15-15)/10'])).toMatchSnapshot()
-    expect(compiler.compile(['bg-[primary-15-15]'])).toMatchSnapshot()
+    expect(compiler.compile({ candidates: ['bg-primary-15-15-10'] })).toMatchSnapshot()
+    expect(compiler.compile({ candidates: ['bg-primary-15-15/10'] })).toMatchSnapshot()
+    expect(compiler.compile({ candidates: ['bg-primary-15-15/[71.37%]'] })).toMatchSnapshot()
+    expect(compiler.compile({ candidates: ['bg-(---color-primary-15-15)'] })).toMatchSnapshot()
+    expect(compiler.compile({ candidates: ['bg-(---color-primary-15-15)/10'] })).toMatchSnapshot()
+    expect(compiler.compile({ candidates: ['bg-[primary-15-15]'] })).toMatchSnapshot()
     expect(
-      compiler.compile(['bg-linear-to-t', 'from-primary-50-50', 'to-0-50-50']),
+      compiler.compile({ candidates: ['bg-linear-to-t', 'from-primary-50-50', 'to-0-50-50'] }),
     ).toMatchSnapshot()
   })
 
@@ -21,7 +21,7 @@ describe('color-scheme', () => {
     const compiler = new Compiler()
     await compiler.reset()
 
-    expect(compiler.compile(['dark:container'])).toMatchSnapshot()
-    expect(compiler.compile(['light:container'])).toMatchSnapshot()
+    expect(compiler.compile({ candidates: ['dark:container'] })).toMatchSnapshot()
+    expect(compiler.compile({ candidates: ['light:container'] })).toMatchSnapshot()
   })
 })

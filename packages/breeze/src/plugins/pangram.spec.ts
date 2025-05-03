@@ -11,6 +11,9 @@ describe('pangram', () => {
       },
     })
 
-    console.log(compiler.compile(['sans-serif-[1lh]/[1]']))
+    console.log(compiler.compile({ candidates: ['top-[calc(var(--spacing-y-md))]'] }))
+    console.log(compiler.compile({ candidates: ['top-y-md'] }))
+    console.log(compiler.compile({ variables: ['--spacing-y-md'] }))
+    console.log(compiler.compile({ candidates: ['top-y-md'], variables: ['--spacing-y-md'] }))
   })
 })

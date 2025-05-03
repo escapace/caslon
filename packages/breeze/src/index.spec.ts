@@ -1,4 +1,4 @@
-import { assert, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { Compiler } from './index'
 
 describe('compiler', () => {
@@ -7,25 +7,27 @@ describe('compiler', () => {
     await compiler.reset()
 
     expect(
-      compiler.compile(['bg-linear-to-t', 'from-sky-50-50', 'to-primary-50-50', 'animate-spin']),
+      compiler.compile({
+        candidates: ['bg-linear-to-t', 'from-sky-50-50', 'to-primary-50-50', 'animate-spin'],
+      }),
     ).toMatchSnapshot()
 
-    assert.deepEqual(compiler.compile([]), [undefined])
+    expect(compiler.compile()).toMatchSnapshot()
   })
 
   it('.', async () => {
     const compiler = new Compiler()
     await compiler.reset()
 
-    expect(compiler.compile(['dark:bg-red-50'])).toMatchSnapshot()
+    expect(compiler.compile({ candidates: ['dark:bg-red-50'] })).toMatchSnapshot()
   })
 
   it('.', async () => {
     const compiler = new Compiler()
     await compiler.reset({})
 
-    assert.deepEqual(compiler.compile(['nonexistent']), [undefined])
-    assert.deepEqual(compiler.compile([]), [undefined])
+    expect(compiler.compile({ candidates: ['nonexistent'] })).toMatchSnapshot()
+    expect(compiler.compile()).toMatchSnapshot()
   })
 
   it('.', async () => {
@@ -41,7 +43,7 @@ describe('compiler', () => {
     })
 
     expect(
-      compiler.compile(['content-auto-test', 'pointer-coarse-test:relative']),
+      compiler.compile({ candidates: ['content-auto-test', 'pointer-coarse-test:relative'] }),
     ).toMatchSnapshot()
   })
 
@@ -49,8 +51,8 @@ describe('compiler', () => {
     const compiler = new Compiler()
     await compiler.reset()
 
-    expect(compiler.compile(['animate-spin', 'rounded-xl'])).toMatchSnapshot()
-    expect(compiler.compile(['relative'])).toMatchSnapshot()
+    expect(compiler.compile({ candidates: ['animate-spin', 'rounded-xl'] })).toMatchSnapshot()
+    expect(compiler.compile({ candidates: ['relative'] })).toMatchSnapshot()
   })
 
   it('.', async () => {
@@ -107,9 +109,8 @@ describe('compiler', () => {
     await compiler.reset()
 
     expect(
-      compiler.compile(
-        [],
-        [
+      compiler.compile({
+        styles: [
           `
 :root {
   @variant dark {
@@ -123,7 +124,21 @@ describe('compiler', () => {
 }
 `,
         ],
-      ),
+      }),
     ).toMatchSnapshot()
+  })
+
+  it('.', async () => {
+    const compiler = new Compiler()
+    await compiler.reset()
+
+    expect(compiler.compile()).toMatchSnapshot()
+  })
+
+  it('.', async () => {
+    const compiler = new Compiler()
+    await compiler.reset()
+
+    expect(compiler.compile({ variables: ['--color-red-500'] })).toMatchSnapshot()
   })
 })
