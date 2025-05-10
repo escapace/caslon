@@ -8,7 +8,24 @@ exports[`compiler > . 1`] = `
     "to-primary-50-50",
     "animate-spin",
   ],
-  "css": "@layer theme {
+  "css": "@layer properties, theme, base, components, utilities;
+@layer properties {
+  @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
+    *, ::before, ::after, ::backdrop {
+      --tw-gradient-position: initial;
+      --tw-gradient-from: #0000;
+      --tw-gradient-via: #0000;
+      --tw-gradient-to: #0000;
+      --tw-gradient-stops: initial;
+      --tw-gradient-via-stops: initial;
+      --tw-gradient-from-position: 0%;
+      --tw-gradient-via-position: 50%;
+      --tw-gradient-to-position: 100%;
+    }
+  }
+}
+
+@layer theme {
   :where(:root,:host) {
     --animate-spin: spin 1s linear infinite;
   }
@@ -105,7 +122,8 @@ exports[`compiler > . 3`] = `
   "candidates": [
     "dark:bg-red-50",
   ],
-  "css": "@layer theme {
+  "css": "@layer properties, theme, base, components, utilities;
+@layer theme {
   :where(:root,:host) {
     --color-red-50: oklch(97.1% 0.013 17.38);
   }
@@ -155,7 +173,8 @@ exports[`compiler > . 6`] = `
     "content-auto-test",
     "pointer-coarse-test:relative",
   ],
-  "css": "@layer utilities {
+  "css": "@layer properties, theme, base, components, utilities;
+@layer utilities {
   .content-auto-test {
     content-visibility: auto;
   }
@@ -177,7 +196,8 @@ exports[`compiler > . 7`] = `
     "animate-spin",
     "rounded-xl",
   ],
-  "css": "@layer theme {
+  "css": "@layer properties, theme, base, components, utilities;
+@layer theme {
   :where(:root,:host) {
     --radius-xl: 0.75rem;
     --animate-spin: spin 1s linear infinite;
@@ -212,7 +232,8 @@ exports[`compiler > . 8`] = `
   "candidates": [
     "relative",
   ],
-  "css": "@layer utilities {
+  "css": "@layer properties, theme, base, components, utilities;
+@layer utilities {
   .relative {
     position: relative;
   }

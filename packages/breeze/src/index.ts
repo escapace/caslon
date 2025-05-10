@@ -1,6 +1,7 @@
 /* eslint-disable typescript/no-non-null-assertion */
+import { colorReferences } from './plugins/color-references'
 import { colorScheme } from './plugins/color-scheme'
-import { pangram, type PangramOptions } from './plugins/pangram'
+import { typography } from './plugins/typography'
 import { vue } from './plugins/vue'
 import { Polyfills } from './tailwindcss'
 import { substituteAtApply } from './tailwindcss/apply'
@@ -13,44 +14,45 @@ import {
   walk,
   type AstNode,
 } from './tailwindcss/ast'
+import type { LoadStylesheet } from './tailwindcss/at-import'
 import type { Candidate } from './tailwindcss/candidate'
 import { substituteFunctions } from './tailwindcss/css-functions'
 import { parse } from './tailwindcss/css-parser'
 import type { DesignSystem } from './tailwindcss/design-system'
+import { MapLazy, type ThemeEntry } from './tailwindcss/patches'
 import { ThemeOptions } from './tailwindcss/theme'
 import { escape } from './tailwindcss/utils/escape'
 import { DEFAULT_THEME } from './theme'
 import { parseCss } from './utilities/css-parse'
 import { markUsedTransientVariables } from './utilities/mark-used-transient-variables'
+import { option } from './utilities/option'
 import { sortAstNodes } from './utilities/sort-ast-nodes'
 import { substituteAtVariant } from './utilities/substitute-at-variant'
 
-const polyfills = Polyfills.ColorMix
+const polyfills = Polyfills.All
 
 export interface Options {
   directory?: string
-  loadStyleSheet?: (id: string, directory: string) => Promise<{ base: string; content: string }>
-  pangram?: PangramOptions
+  loadStyleSheet?: LoadStylesheet
   selector?: string
   theme?: string
 }
 
-const toCss = (value: AstNode[]) =>
+const toCss = (value: AstNode[], track?: boolean) =>
   value.length === 0 || value.every((value) => value.kind === 'at-rule' && value.nodes.length === 0)
     ? undefined
-    : _toCss(value)
+    : _toCss(value, track)
+
+const DEFAULT_SELECTOR = ':where(:root,:host)'
 
 export class Compiler {
   public designSystem!: DesignSystem
-  public options!: Pick<Options, 'theme'> & Required<Pick<Options, 'selector'>>
-  public themeAst!: AstNode[]
-  public themeValues!: ReadonlyArray<[string, { options: ThemeOptions; value: string }]>
+  private readonly options: Options = {}
+  private themeAst!: AstNode[]
+  private themeValues!: ThemeEntry[]
 
   async reset(options: Options = {}) {
-    this.options = {
-      ...options,
-      selector: options.selector ?? ':where(:root,:host)',
-    }
+    Object.assign(this.options, options)
 
     const { ast, designSystem } = await parseCss({
       css: [DEFAULT_THEME, this.options.theme].filter((value) => value !== undefined).join('\n'),
@@ -58,9 +60,14 @@ export class Compiler {
       loadStyleSheet: options.loadStyleSheet,
     })
 
+    if (this.options.selector === undefined) {
+      Object.assign(this.options, { selector: option(designSystem, 'string', '--selector') })
+    }
+
+    colorReferences(designSystem)
     vue(designSystem)
     colorScheme(designSystem)
-    pangram(designSystem, options.pangram)
+    typography(designSystem)
 
     this.themeValues = Array.from(designSystem.theme.values.entries())
 
@@ -153,18 +160,29 @@ export class Compiler {
     options?: Partial<Pick<Options, 'selector'>>,
   ): {
     keyframes: AstNode[]
-    properties: AstNode[]
+    propertiesAtRules: AstNode[]
+    propertiesLayer: AstNode[]
     theme: AstNode[]
     utilities: AstNode[]
   } {
     const utilities: AstNode[] = []
-    const properties: AstNode[] = []
+    const propertiesAtRules: AstNode[] = []
     const theme: AstNode[] = []
     const keyframes: AstNode[] = []
+    const propertiesLayer: AstNode[] = []
 
     walk(astNodes, (value, tools) => {
       if (value.kind === 'at-rule' && value.name === '@property') {
-        properties.push(value)
+        propertiesAtRules.push(value)
+        tools.replaceWith([])
+      }
+    })
+
+    walk(astNodes, (value, tools) => {
+      if (value.kind === 'at-rule' && value.name === '@layer' && value.params === 'properties') {
+        if (value.nodes.length !== 0) {
+          propertiesLayer.push(value)
+        }
         tools.replaceWith([])
       }
     })
@@ -192,14 +210,15 @@ export class Compiler {
 
     return {
       keyframes,
-      properties,
+      propertiesAtRules,
+      propertiesLayer,
       theme: [
         atRule(
           '@layer',
           'theme',
           theme.length === 0
             ? theme
-            : [styleRule(options?.selector ?? this.options.selector, theme)],
+            : [styleRule(options?.selector ?? this.options.selector ?? DEFAULT_SELECTOR, theme)],
         ),
       ],
       utilities,
@@ -252,7 +271,9 @@ export class Compiler {
     const layers = this.compileLayers(astNodes, options)
 
     const array = (
-      ['theme', 'utilities', 'properties', 'keyframes'] satisfies Array<keyof typeof layers>
+      ['propertiesLayer', 'theme', 'utilities', 'propertiesAtRules', 'keyframes'] satisfies Array<
+        keyof typeof layers
+      >
     )
       .map((layer) => [layer, toCss(layers[layer])])
       .filter((value): value is [keyof typeof layers, string] => value[1] !== undefined)
@@ -260,7 +281,10 @@ export class Compiler {
 
     return array.length === 0
       ? ([undefined, undefined] as const)
-      : ([array.join('\n'), validCandidates] as const)
+      : ([
+          ['@layer properties, theme, base, components, utilities;', ...array].join('\n'),
+          validCandidates,
+        ] as const)
   }
 
   public compile(
@@ -275,7 +299,10 @@ export class Compiler {
     styles: Array<string | undefined>
     variables: string[]
   } {
-    this.designSystem.theme.values = new Map(structuredClone(this.themeValues))
+    this.designSystem.theme.values = new MapLazy(
+      structuredClone(this.themeValues),
+      this.designSystem.theme.resolvers,
+    )
 
     for (const variable of options?.variables ?? []) {
       this.designSystem.theme.markUsedVariable(variable)

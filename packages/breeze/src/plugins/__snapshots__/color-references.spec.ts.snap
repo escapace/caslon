@@ -1,0 +1,19 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`cepheus > . 1`] = `
+{
+  "candidates": [],
+  "css": undefined,
+  "styles": [],
+  "variables": [],
+}
+`;
+
+exports[`cepheus > . 2`] = `
+{
+  "candidates": [],
+  "css": undefined,
+  "styles": [],
+  "variables": [],
+}
+`;

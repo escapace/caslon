@@ -5,7 +5,8 @@ exports[`vue > . 1`] = `
   "candidates": [
     "global:container",
   ],
-  "css": "@layer utilities {
+  "css": "@layer properties, theme, base, components, utilities;
+@layer utilities {
   :global(.global\\:container) {
     width: 100%;
     @media (width >= 640px) {
@@ -36,7 +37,8 @@ exports[`vue > . 2`] = `
   "candidates": [
     "slotted:container",
   ],
-  "css": "@layer utilities {
+  "css": "@layer properties, theme, base, components, utilities;
+@layer utilities {
   :slotted(.slotted\\:container) {
     width: 100%;
     @media (width >= 640px) {
@@ -67,7 +69,8 @@ exports[`vue > . 3`] = `
   "candidates": [
     "deep:container",
   ],
-  "css": "@layer utilities {
+  "css": "@layer properties, theme, base, components, utilities;
+@layer utilities {
   :deep(.deep\\:container) {
     width: 100%;
     @media (width >= 640px) {

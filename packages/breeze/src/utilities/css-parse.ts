@@ -16,7 +16,7 @@ import {
   type AstNode,
   type StyleRule,
 } from '../tailwindcss/ast'
-import { substituteAtImports } from '../tailwindcss/at-import'
+import { substituteAtImports, type LoadStylesheet } from '../tailwindcss/at-import'
 import { substituteFunctions } from '../tailwindcss/css-functions'
 import { parse } from '../tailwindcss/css-parser'
 import { buildDesignSystem, type DesignSystem } from '../tailwindcss/design-system'
@@ -53,14 +53,14 @@ function parseThemeOptions(parameters: string) {
 export const parseCss = async (options: {
   css: string
   directory?: string
-  loadStyleSheet?: (id: string, directory: string) => Promise<{ base: string; content: string }>
+  loadStyleSheet?: LoadStylesheet
 }) => {
   let features = Features.None
   const ast = [contextNode({ theme: true }, parse(options.css))] as AstNode[]
 
   features |= await substituteAtImports(ast, options.directory ?? '', async (id, directory) => {
     if (id === 'tailwindcss') {
-      return { base: '', content: '' }
+      return { base: '', content: '', path: id }
     }
 
     if (options.loadStyleSheet === undefined) {

@@ -9,8 +9,8 @@
   "devDependencies": {
     "@ls-lint/ls-lint": "2.3.0",
     "@vitest/coverage-v8": "3.1.2",
-    "eslint": "9.25.1",
-    "eslint-config-escapace": "5.5.3",
+    "eslint": "9.26.0",
+    "eslint-config-escapace": "5.6.0",
     "esroll": "0.4.3",
     "prettier": "3.5.3",
     "prettier-config-escapace": "1.2.1",
@@ -33,7 +33,7 @@
     "lib/types"
   ],
   "homepage": "https://github.com/escapace/caslon/tree/trunk/packages/utopia#readme",
-  "license": "MPL-2.0",
+  "license": "ISC",
   "module": "lib/neutral/index.js",
   "private": false,
   "publishConfig": {

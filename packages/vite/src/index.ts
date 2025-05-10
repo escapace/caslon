@@ -17,7 +17,7 @@ import { createFilter } from 'vite'
 import { isFile } from './utilities/is-file'
 import { parseVueRequest, parseVueStyleRequest } from './utilities/parse-vue-request'
 
-interface Options extends Pick<BreezeOptions, 'pangram' | 'selector'> {
+interface Options extends Pick<BreezeOptions, 'selector'> {
   exclude?: string | ReadonlyArray<string | RegExp> | RegExp
   include?: string | ReadonlyArray<string | RegExp> | RegExp
   scoped?: boolean | string | ReadonlyArray<string | RegExp> | RegExp
@@ -328,96 +328,14 @@ export function caslon(options?: Options): Plugin[] {
 
         updateState(filePath, { type: 'theme' })
 
-        return { base, content }
+        return { base, content, path: filePath }
       },
-      pangram: options?.pangram,
       selector: options?.selector,
       theme: theme ? await readFile(properties.pathFileTheme, 'utf8') : undefined,
     })
   }
 
   return [
-    {
-      enforce: 'pre',
-      name: 'test',
-      async renderChunk(_, chunk) {
-        const variables = new Set<string>()
-        const candidates = new Set<string>()
-        const modulesToRemove = new Set<string>()
-
-        for (const [id] of Object.entries(chunk.modules)) {
-          const request = parseVueRequest(id)
-
-          if (request === undefined) {
-            continue
-          }
-
-          const { filePath } = request
-
-          if (properties.state.has(filePath)) {
-            // eslint-disable-next-line typescript/no-non-null-assertion
-            const state = properties.state.get(filePath)!
-
-            assert(state.type !== 'theme')
-
-            if (
-              state.type === 'sfc' &&
-              !state.scoped &&
-              request.vue &&
-              request.type === 'style' &&
-              request.lang === 'css' &&
-              request.index === 0
-            ) {
-              for (const variable of state.variables) {
-                variables.add(variable)
-              }
-
-              for (const candidate of state.candidates) {
-                candidates.add(candidate)
-              }
-
-              modulesToRemove.add(id)
-            }
-          }
-        }
-
-        if (variables.size === 0 && candidates.size === 0) {
-          return
-        }
-
-        for (const id of modulesToRemove) {
-          remove(chunk.moduleIds, (value) => value === id)
-          remove(chunk.dynamicImports, (value) => value === id)
-          remove(chunk.exports, (value) => value === id)
-          remove(chunk.imports, (value) => value === id)
-
-          Reflect.deleteProperty(chunk.modules, id)
-        }
-
-        const name = `${chunk.fileName}.css`
-
-        const { css } = properties.compiler.compile({
-          candidates: [...candidates],
-          selector: options?.selector,
-          variables: [...variables],
-        })
-
-        if (css === undefined) {
-          return
-        }
-
-        // eslint-disable-next-line typescript/no-explicit-any, typescript/no-unsafe-argument
-        await properties.cssTransform.call(this as any, css, name)
-
-        chunk.modules[name] = {
-          code: null,
-          originalLength: 0,
-          removedExports: [],
-          renderedExports: [],
-          renderedLength: 0,
-        }
-      },
-    },
     {
       async buildStart() {
         const { addWatchFile: watchFile, error, info, warn } = this
@@ -508,6 +426,83 @@ export function caslon(options?: Options): Plugin[] {
           return
         },
         order: 'pre',
+      },
+      async renderChunk(_, chunk) {
+        const variables = new Set<string>()
+        const candidates = new Set<string>()
+        const modulesToRemove = new Set<string>()
+
+        for (const [id] of Object.entries(chunk.modules)) {
+          const request = parseVueRequest(id)
+
+          if (request === undefined) {
+            continue
+          }
+
+          const { filePath } = request
+
+          if (properties.state.has(filePath)) {
+            // eslint-disable-next-line typescript/no-non-null-assertion
+            const state = properties.state.get(filePath)!
+
+            assert(state.type !== 'theme')
+
+            if (
+              state.type === 'sfc' &&
+              !state.scoped &&
+              request.vue &&
+              request.type === 'style' &&
+              request.lang === 'css' &&
+              request.index === 0
+            ) {
+              for (const variable of state.variables) {
+                variables.add(variable)
+              }
+
+              for (const candidate of state.candidates) {
+                candidates.add(candidate)
+              }
+
+              modulesToRemove.add(id)
+            }
+          }
+        }
+
+        if (variables.size === 0 && candidates.size === 0) {
+          return
+        }
+
+        for (const id of modulesToRemove) {
+          remove(chunk.moduleIds, (value) => value === id)
+          remove(chunk.dynamicImports, (value) => value === id)
+          remove(chunk.exports, (value) => value === id)
+          remove(chunk.imports, (value) => value === id)
+
+          Reflect.deleteProperty(chunk.modules, id)
+        }
+
+        const name = `${chunk.fileName}.css`
+
+        const { css } = properties.compiler.compile({
+          candidates: [...candidates],
+          selector: options?.selector,
+          variables: [...variables],
+        })
+
+        if (css === undefined) {
+          return
+        }
+
+        // eslint-disable-next-line typescript/no-explicit-any, typescript/no-unsafe-argument
+        await properties.cssTransform.call(this as any, css, name)
+
+        chunk.modules[name] = {
+          code: null,
+          originalLength: 0,
+          removedExports: [],
+          renderedExports: [],
+          renderedLength: 0,
+        }
       },
 
       transform: {

@@ -3,7 +3,7 @@
  * https://github.com/trys/utopia-core
  */
 
-type UtopiaLabelStyle = 'tailwind' | 'tshirt' | 'utopia'
+type UtopiaLabelStyle = 'number' | 'tailwind' | 'tshirt' | 'utopia'
 type UtopiaRelativeTo = 'container' | 'viewport-width' | 'viewport'
 
 export interface UtopiaTypeConfig {
@@ -13,12 +13,7 @@ export interface UtopiaTypeConfig {
   minFontSize: number
   minTypeScale: number
   minWidth: number
-  calculateTypeSize?: (options: {
-    fontSize: number
-    scale: number
-    step: number
-    steps: number
-  }) => number
+  calculateTypeSize?: (options: { fontSize: number; scale: number; step: number }) => number
   labelStyle?: UtopiaLabelStyle
   negativeSteps?: number
   positiveSteps?: number
@@ -93,7 +88,7 @@ const clamp = (a: number, min = 0, max = 1) => Math.min(max, Math.max(min, a))
 const invlerp = (x: number, y: number, a: number) => clamp((a - x) / (y - x))
 const range = (x1: number, y1: number, x2: number, y2: number, a: number) =>
   lerp(x2, y2, invlerp(x1, y1, a))
-const roundValue = (n: number) => Math.round((n + Number.EPSILON) * 10_000) / 10_000
+export const roundValue = (n: number) => Math.round((n + Number.EPSILON) * 10_000) / 10_000
 const sortNumberAscending = (a: number, b: number) => Number(a) - Number(b)
 
 // Clamp
@@ -208,11 +203,10 @@ export const calculateClamps = ({
 
 // Type
 
-const calculateTypeSize = (
-  config: UtopiaTypeConfig,
+export const calculateTypeSize = (
+  config: Omit<UtopiaTypeConfig, 'negativeSteps' | 'positiveSteps'>,
   viewport: number,
   step: number,
-  steps: number,
 ): number => {
   const scale = range(
     config.minWidth,
@@ -230,11 +224,15 @@ const calculateTypeSize = (
   )
 
   return config.calculateTypeSize !== undefined
-    ? config.calculateTypeSize({ fontSize, scale, step, steps })
+    ? config.calculateTypeSize({ fontSize, scale, step })
     : fontSize * Math.pow(scale, step) /* fontSize * Math.pow(scale, step / steps) */
 }
 
 const mapStepToLabel = (step: number, labelGroup: UtopiaLabelStyle = 'utopia') => {
+  if (labelGroup === 'number') {
+    return step.toString()
+  }
+
   if (labelGroup === 'utopia') return step.toString()
 
   if (step < -2) return `${-1 * (step + 1)}xs`
@@ -258,10 +256,12 @@ const mapStepToLabel = (step: number, labelGroup: UtopiaLabelStyle = 'utopia') =
   return step.toString()
 }
 
-const calculateTypeStep = (config: UtopiaTypeConfig, step: number, steps: number): UtopiaStep => {
-  const minFontSize = calculateTypeSize(config, config.minWidth, step, steps)
-  const maxFontSize = calculateTypeSize(config, config.maxWidth, step, steps)
-  // TODO: clean this up
+export const calculateTypeStep = (
+  config: Omit<UtopiaTypeConfig, 'negativeSteps' | 'positiveSteps'>,
+  step: number,
+): UtopiaStep => {
+  const minFontSize = calculateTypeSize(config, config.minWidth, step)
+  const maxFontSize = calculateTypeSize(config, config.maxWidth, step)
   const wcag = checkWCAG({
     max: maxFontSize,
     maxWidth: config.maxWidth,
@@ -292,17 +292,15 @@ const calculateTypeStep = (config: UtopiaTypeConfig, step: number, steps: number
 }
 
 export const calculateTypeScale = (config: UtopiaTypeConfig): UtopiaStep[] => {
-  const steps = Math.max(config.positiveSteps ?? 0, config.negativeSteps ?? 0)
-
   const positiveSteps = Array.from({ length: config.positiveSteps ?? 0 })
-    .map((_, index) => calculateTypeStep(config, index + 1, steps))
+    .map((_, index) => calculateTypeStep(config, index + 1))
     .reverse()
 
   const negativeSteps = Array.from({ length: config.negativeSteps ?? 0 }).map((_, index) =>
-    calculateTypeStep(config, -1 * (index + 1), steps),
+    calculateTypeStep(config, -1 * (index + 1)),
   )
 
-  return [...positiveSteps, calculateTypeStep(config, 0, 1), ...negativeSteps]
+  return [...positiveSteps, calculateTypeStep(config, 0), ...negativeSteps]
 }
 
 // Space
@@ -463,17 +461,15 @@ export const typeScaleToString = (config: { prefix?: string } & UtopiaTypeConfig
   ].join('\n')
 }
 
-// const result = typeScaleToString({
-//   prefix: 'x-height',
-//   labelStyle: 'tshirt',
-//   maxFontSize: 20,
-//   maxTypeScale: 1.25,
+// const result = calculateSpaceScale({
+//   // labelStyle: 'number',
+//   maxSize: 20,
+//   // maxTypeScale: 1.25,
 //   maxWidth: 1240,
-//   minFontSize: 10,
-//   minTypeScale: 1.2,
+//   minSize: 18,
+//   // minTypeScale: 1.2,
 //   minWidth: 320,
-//   negativeSteps: 3,
-//   positiveSteps: 5,
+//   negativeSteps: [0.25, 0.5, 0.75],
+//   positiveSteps: [1, 1.5, 2, 3],
+//   // prefix: 'x-height',
 // })
-//
-// console.log(result)

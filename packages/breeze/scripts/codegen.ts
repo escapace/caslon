@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import * as zx from 'zx'
 import { $ } from 'zx'
 
-const TAILWINDS_REF = 'v4.1.5'
+const TAILWINDS_REF = 'v4.1.6'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
