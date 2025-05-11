@@ -321,6 +321,7 @@ export function caslon(options?: Options): Plugin[] {
 
     await properties.compiler.reset({
       directory: theme ? path.dirname(properties.pathFileTheme) : undefined,
+      error: properties.error,
       loadStyleSheet: async (id, directory) => {
         const filePath = path.resolve(directory, id)
         const base = path.dirname(filePath)
@@ -332,6 +333,7 @@ export function caslon(options?: Options): Plugin[] {
       },
       selector: options?.selector,
       theme: theme ? await readFile(properties.pathFileTheme, 'utf8') : undefined,
+      warning: properties.warn,
     })
   }
 

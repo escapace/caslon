@@ -1,37 +1,29 @@
 /* eslint-disable typescript/strict-boolean-expressions */
-import { calculateClamp, calculateTypeSize } from '@caslon/utopia'
+import { calculateClamp, calculateTypeSize, checkWCAG } from '@caslon/utopia'
 import { atRule, decl, styleRule, type AstNode } from '../tailwindcss/ast'
-import type { DesignSystem } from '../tailwindcss/design-system'
 import type { ThemeValueResolver } from '../tailwindcss/patches'
 import { ThemeOptions } from '../tailwindcss/theme'
 import type { SuggestionDefinition, UtilityDescription } from '../tailwindcss/utilities'
-import {
-  inferDataType,
-  isMultipleOf,
-  isValidSpacingMultiplier,
-} from '../tailwindcss/utils/infer-data-type'
+import { escape } from '../tailwindcss/utils/escape'
+import { inferDataType, isValidSpacingMultiplier } from '../tailwindcss/utils/infer-data-type'
+import type { PluginOptions } from '../types'
 import { assert } from '../utilities/assert'
 import { breakpointsRange } from '../utilities/breakpoints-range'
-import { option } from '../utilities/option'
+import { isValidLineHeight } from '../utilities/is-valid-line-height'
+import { isValidTypeScale } from '../utilities/is-valid-type-scale'
 import { markUsedTransientVariables } from '../utilities/mark-used-transient-variables'
-import { escape } from '../tailwindcss/utils/escape'
+import { option } from '../utilities/option'
+
+const isWithinRange = (number: number, range: [number, number]): boolean => {
+  const [min, max] = range
+  assert(min <= max, 'Invalid range: min should be less than or equal to max.')
+  return number >= min && number <= max
+}
 
 const DEFAULT_LINE_HEIGHT = 1.5
 const DEFAULT_X_HEIGHT = '1ex'
 
-export function isValidLineHeight(value: unknown) {
-  const number = Number(value)
-
-  return number >= 1 && isMultipleOf(number, 0.125)
-}
-
-export function isValidTypeScale(value: unknown) {
-  const number = Number(value)
-
-  return number % 0.125 === 0 && String(number) === String(value)
-}
-
-interface Options {
+interface TypographyOptions extends PluginOptions {
   maxFontSize: number
   maxTypeScale: number
   maxWidth: number
@@ -40,11 +32,14 @@ interface Options {
   minWidth: number
   primaryStack: string
   stacks: string[]
+  wcagConformanceRange: [number, number]
 }
 
 const calcualateSpacingPair = (
   value: [number, number],
-  options: Required<Pick<Options, 'maxFontSize' | 'maxWidth' | 'minFontSize' | 'minWidth'>>,
+  options: Required<
+    Pick<TypographyOptions, 'maxFontSize' | 'maxWidth' | 'minFontSize' | 'minWidth'>
+  >,
 ) => {
   const [a, b] = value.map((multiplier) => ({
     maxSize: Math.round(options.maxFontSize * multiplier),
@@ -61,7 +56,7 @@ const calcualateSpacingPair = (
 }
 
 const createResolver =
-  (options: Options, designSystem: DesignSystem): ThemeValueResolver =>
+  (options: TypographyOptions): ThemeValueResolver =>
   (value) => {
     const array =
       /^--(?<type>spacing|x-height)-(?<x>-?(?:\d+\.)?\d+)(?:(?<separator>[/-])(?<y>-?(?:\d+\.)?\d+|lh))?$/i.exec(
@@ -89,27 +84,21 @@ const createResolver =
     }
 
     if (type === 'x-height' && y === undefined && isValidTypeScale(xx)) {
-      const step = xx
-      const minFontSize = calculateTypeSize(options, options.minWidth, step)
-      const maxFontSize = calculateTypeSize(options, options.maxWidth, step)
+      const minFontSize = calculateTypeSize(options, options.minWidth, xx)
+      const maxFontSize = calculateTypeSize(options, options.maxWidth, xx)
 
-      // TODO: check wcag for certain steps
-      // const wcag = checkWCAG({
-      //   max: maxFontSize,
-      //   maxWidth: config.maxWidth,
-      //   min: minFontSize,
-      //   minWidth: config.minWidth,
-      // })
-      //
-      // const wcagViolations = scales
-      //   .map((value) => value.wcagViolation)
-      //   .filter((value) => value !== undefined)
-      //
-      // if (wcagViolations.length !== 0) {
-      //   throw new Error(
-      //     `WCAG 1.4.4 violation(s): ${wcagViolations.map((value) => `${value.from}-${value.to}`).join(', ')}`,
-      //   )
-      // }
+      if (!isWithinRange(xx, options.wcagConformanceRange)) {
+        const wcag = checkWCAG({
+          max: maxFontSize,
+          maxWidth: options.maxWidth,
+          min: minFontSize,
+          minWidth: options.minWidth,
+        })
+
+        if (Array.isArray(wcag) && wcag.length > 0) {
+          options.warning(`WCAG 1.4.4 violation for type size ${xx}: ${wcag[0]}-${wcag[1]}.`)
+        }
+      }
 
       const clamp = calculateClamp({
         maxSize: maxFontSize,
@@ -121,7 +110,7 @@ const createResolver =
 
       const value = `${clamp} * var(--${options.primaryStack}-x-height)`
 
-      markUsedTransientVariables(value, designSystem)
+      markUsedTransientVariables(value, options.designSystem)
 
       return {
         options: ThemeOptions.DEFAULT,
@@ -139,12 +128,12 @@ const createResolver =
     }
 
     if (y === 'lh' && separator === '/' && isValidTypeScale(xx)) {
-      // /* How many of the font’s own x‑heights lie between one baseline and the top of the lower‑case letters on the next line, given a particular line-height. */
+      // How many of the font’s own x‑heights lie between one baseline and the top of the lower‑case letters on the next line, given a particular line-height.
       //   `--interline-x-height`,
       //   `((var(--${prefix}-cap-x-ratio) * (var(--line-height, 1) - 1)) + var(--${prefix}-baseline-offset))`,
       const value = `calc(var(${escape(`--x-height-${xx}`)}) * ((var(--${options.primaryStack}-cap-x-ratio) * (var(--line-height) - 1)) + var(--${options.primaryStack}-baseline-offset)))`
 
-      markUsedTransientVariables(value, designSystem)
+      markUsedTransientVariables(value, options.designSystem)
 
       // typographic spacing
       return {
@@ -163,7 +152,7 @@ const createResolver =
     if (separator === '/' && isValidTypeScale(xx) && isValidLineHeight(yy)) {
       const value = `calc(var(${escape(`--x-height-${xx}`)}) * ((var(--${options.primaryStack}-cap-x-ratio) * ${yy - 1}) + var(--${options.primaryStack}-baseline-offset)))`
 
-      markUsedTransientVariables(value, designSystem)
+      markUsedTransientVariables(value, options.designSystem)
 
       return {
         options: ThemeOptions.DEFAULT,
@@ -184,7 +173,7 @@ const createResolver =
         minWidth: options.minWidth,
       })} * var(--${options.primaryStack}-x-width-average))`
 
-      markUsedTransientVariables(value, designSystem)
+      markUsedTransientVariables(value, options.designSystem)
 
       return {
         options: ThemeOptions.DEFAULT,
@@ -196,8 +185,9 @@ const createResolver =
     return undefined
   }
 
-export const createSpacingVariables = (designSystem: DesignSystem, options: Options) => {
-  const resolver = createResolver(options, designSystem)
+const createSpacingVariables = (options: TypographyOptions) => {
+  const { designSystem } = options
+  const resolver = createResolver(options)
 
   designSystem.theme.resolvers.push(resolver)
 
@@ -214,7 +204,8 @@ export const createSpacingVariables = (designSystem: DesignSystem, options: Opti
   )
 }
 
-const createStyleVariables = (designSystem: DesignSystem, options: Options) => {
+const createStyleVariables = (options: TypographyOptions) => {
+  const { designSystem } = options
   const { theme } = designSystem
 
   for (const prefix of options.stacks) {
@@ -241,7 +232,8 @@ const createStyleVariables = (designSystem: DesignSystem, options: Options) => {
   }
 }
 
-const createStyleUtilities = (designSystem: DesignSystem, options: Options) => {
+const createStyleUtilities = (options: TypographyOptions) => {
+  const { designSystem } = options
   const { theme, utilities } = designSystem
 
   // @ts-expect-error untyped
@@ -259,7 +251,6 @@ const createStyleUtilities = (designSystem: DesignSystem, options: Options) => {
 
     const qwe = (xHeight?: string, lineHeight?: string) => {
       // TODO: fallback
-      // TODO: prefer local --tw- options
       const declarations: AstNode[] = [
         decl('font-family', `var(--${prefix}-font-family)`),
         decl('font-stretch', `var(--${prefix}-font-stretch)`),
@@ -268,7 +259,6 @@ const createStyleUtilities = (designSystem: DesignSystem, options: Options) => {
         decl('font-weight', `var(--${prefix}-font-weight)`),
       ]
 
-      // TODO: assert that there is no --x-height and --line-height variables in theme
       if (typeof lineHeight === 'string') {
         if (!isValidLineHeight(lineHeight)) {
           return null
@@ -278,11 +268,6 @@ const createStyleUtilities = (designSystem: DesignSystem, options: Options) => {
       }
 
       if (typeof xHeight === 'string') {
-        console.log(xHeight)
-        // if (!isValidTypeScale(xHeight)) {
-        //   return null
-        // }
-
         declarations.push(decl('--x-height', xHeight))
       }
 
@@ -455,7 +440,9 @@ const createStyleUtilities = (designSystem: DesignSystem, options: Options) => {
   }
 }
 
-const createOptions = (designSystem: DesignSystem): Options | undefined => {
+const createOptions = (pluginOptions: PluginOptions): TypographyOptions | undefined => {
+  const { designSystem } = pluginOptions
+
   let primaryStack = option(designSystem, 'string', '--typography-primary-stack')
   primaryStack =
     typeof primaryStack === 'string'
@@ -464,7 +451,7 @@ const createOptions = (designSystem: DesignSystem): Options | undefined => {
         : undefined
       : undefined
 
-  let stacks = option(designSystem, 'array', '--typography-stacks')
+  let stacks = option(designSystem, 'array-string', '--typography-stacks')
     ?.filter((value) => /^[a-z-]+$/.test(value))
     ?.filter((value) => value !== undefined)
   stacks = stacks?.length === 0 ? undefined : stacks
@@ -478,236 +465,67 @@ const createOptions = (designSystem: DesignSystem): Options | undefined => {
   const [minWidthTheme, maxWidthTheme] = breakpointsRange(designSystem)
 
   const minFontSize = option(designSystem, 'number', '--typography-min-font-size') ?? 18
-  const minScale = option(designSystem, 'number', '--typography-min-scale') ?? 1.2
+  const minTypeScale = option(designSystem, 'number', '--typography-min-scale') ?? 1.2
   const minWidth = option(designSystem, 'number', '--typography-min-width') ?? minWidthTheme
 
   const maxFontSize = option(designSystem, 'number', '--typography-max-font-size') ?? 20
-  const maxScale = option(designSystem, 'number', '--typography-max-scale') ?? 1.25
+  const maxTypeScale = option(designSystem, 'number', '--typography-max-scale') ?? 1.25
   const maxWidth = option(designSystem, 'number', '--typography-max-width') ?? maxWidthTheme
 
-  // TODO: wcag options
+  const wcagConformanceRange = option(
+    designSystem,
+    'array-number',
+    '--typography-wcag-conformance-range',
+  ) ?? [-2, 6]
+
+  assert(
+    minFontSize <= maxFontSize,
+    '--typography-max-font-size must be larger or equal to --typography-min-font-size',
+  )
+
+  assert(
+    minTypeScale <= maxTypeScale,
+    '--typography-max-scale must be larger or equal to --typography-min-scale',
+  )
+
+  assert(
+    minWidth <= maxWidth,
+    '--typography-max-width must be larger or equal to --typography-min-width',
+  )
+
+  assert(
+    designSystem.theme.get(['--x-height']) === null,
+    '--x-height variable is not permitted in theme.',
+  )
+  assert(
+    designSystem.theme.get(['--line-height']) === null,
+    '--line-height variable is not permitted in theme.',
+  )
 
   return {
+    ...pluginOptions,
+
     primaryStack,
     stacks,
 
     maxFontSize,
-    maxTypeScale: maxScale,
+    maxTypeScale,
     maxWidth,
     minFontSize,
-    minTypeScale: minScale,
+    minTypeScale,
     minWidth,
+    wcagConformanceRange: [Math.min(...wcagConformanceRange), Math.max(...wcagConformanceRange)],
   }
 }
 
-export const typography = (designSystem: DesignSystem) => {
-  const options = createOptions(designSystem)
+export const typography = (pluginOptions: PluginOptions) => {
+  const options = createOptions(pluginOptions)
 
   if (options === undefined) {
     return
   }
 
-  createStyleVariables(designSystem, options)
-  createSpacingVariables(designSystem, options)
-  createStyleUtilities(designSystem, options)
-
-  // createVerticalSpacingUtilities(designSystem)
+  createStyleVariables(options)
+  createSpacingVariables(options)
+  createStyleUtilities(options)
 }
-
-// const clearNamespace = (designSystem: DesignSystem, namespace: string) => {
-//   const { utilities } = designSystem
-//
-//   const value = utilities.get(namespace)
-//   value.splice(0, value.length)
-// }
-//
-// const createVerticalSpacingUtilities = (designSystem: DesignSystem) => {
-//   const { theme, utilities } = designSystem
-//
-//   // @ts-expect-error untyped
-//   const { functionalUtility } = utilities.references as {
-//     functionalUtility: (classRoot: string, desc: UtilityDescription) => void
-//     staticUtility: (
-//       className: string,
-//       declarations: Array<(() => AstNode) | [string, string]>,
-//     ) => void
-//     suggest: (classRoot: string, defns: () => SuggestionDefinition[]) => void
-//   }
-//
-//   function spacingUtility(
-//     name: string,
-//     themeKeys: ThemeKey[],
-//     handle: (value: string) => AstNode[] | undefined,
-//     {
-//       supportsFractions = false,
-//       supportsNegative = false,
-//     }: {
-//       supportsFractions?: boolean
-//       supportsNegative?: boolean
-//     } = {},
-//   ) {
-//     clearNamespace(designSystem, name)
-//
-//     // const themeKeys = _themeKeys.map((value) => `${value}` as `--${string}`)
-//
-//     functionalUtility(name, {
-//       defaultValue: null,
-//       handle,
-//       handleBareValue: ({ value }) => {
-//         const multiplier = theme.resolve(null, ['--spacing'])
-//         if (!multiplier) return null
-//         if (!isValidSpacingMultiplier(value)) return null
-//
-//         return `calc(${multiplier} * ${value})`
-//       },
-//       handleNegativeBareValue: ({ value }) => {
-//         const multiplier = theme.resolve(null, ['--spacing'])
-//         if (!multiplier) return null
-//         if (!isValidSpacingMultiplier(value)) return null
-//
-//         return `calc(${multiplier} * -${value})`
-//       },
-//       supportsFractions,
-//       supportsNegative,
-//       themeKeys,
-//     })
-//
-//     // suggest(name, () => [
-//     //   {
-//     //     supportsFractions,
-//     //     supportsNegative,
-//     //     values: theme.get(['--spacing']) ? DEFAULT_SPACING_SUGGESTIONS : [],
-//     //     valueThemeKeys: themeKeys,
-//     //   },
-//     // ])
-//   }
-//
-//   /**
-//    * @css `margin`
-//    */
-//   for (const [namespace, property] of [
-//     ['my', 'margin-block'],
-//     ['mt', 'margin-top'],
-//     ['mb', 'margin-bottom'],
-//   ] as const) {
-//     spacingUtility(namespace, ['--margin', '--spacing'], (value) => [decl(property, value)], {
-//       supportsNegative: true,
-//     })
-//   }
-//
-//   /**
-//    * @css `inset`
-//    */
-//   for (const [name, property] of [
-//     ['inset-y', 'inset-block'],
-//     ['top', 'top'],
-//     ['bottom', 'bottom'],
-//   ] as const) {
-//     spacingUtility(name, ['--inset', '--spacing'], (value) => [decl(property, value)], {
-//       supportsFractions: true,
-//       supportsNegative: true,
-//     })
-//   }
-//
-//   for (const [name, namespaces, property] of [
-//     ['h', ['--height', '--spacing'], 'height'],
-//     ['min-h', ['--min-height', '--height', '--spacing'], 'min-height'],
-//     ['max-h', ['--max-height', '--height', '--spacing'], 'max-height'],
-//   ] as Array<[string, ThemeKey[], string]>) {
-//     spacingUtility(name, namespaces, (value) => [decl(property, value)], {
-//       supportsFractions: true,
-//     })
-//   }
-//
-//   /**
-//    * @css `border-spacing`
-//    */
-//   // eslint-disable-next-line unicorn/consistent-function-scoping
-//   const borderSpacingProperties = () =>
-//     atRoot([
-//       property('--tw-border-spacing-x', '0', '<length>'),
-//       property('--tw-border-spacing-y', '0', '<length>'),
-//     ])
-//
-//   spacingUtility('border-spacing-y', ['--border-spacing', '--spacing'], (value) => [
-//     borderSpacingProperties(),
-//     decl('--tw-border-spacing-y', value),
-//     decl('border-spacing', 'var(--tw-border-spacing-x) var(--tw-border-spacing-y)'),
-//   ])
-//
-//   /**
-//    * @css `scroll-margin`
-//    */
-//   for (const [namespace, property] of [
-//     ['scroll-my', 'scroll-margin-block'],
-//     ['scroll-mt', 'scroll-margin-top'],
-//     ['scroll-mb', 'scroll-margin-bottom'],
-//   ] as const) {
-//     spacingUtility(
-//       namespace,
-//       ['--scroll-margin', '--spacing'],
-//       (value) => [decl(property, value)],
-//       {
-//         supportsNegative: true,
-//       },
-//     )
-//   }
-//
-//   /**
-//    * @css `scroll-padding`
-//    */
-//   for (const [namespace, property] of [
-//     ['scroll-py', 'scroll-padding-block'],
-//     ['scroll-pt', 'scroll-padding-top'],
-//     ['scroll-pb', 'scroll-padding-bottom'],
-//   ] as const) {
-//     spacingUtility(namespace, ['--scroll-padding', '--spacing'], (value) => [decl(property, value)])
-//   }
-//
-//   spacingUtility('gap-y', ['--gap', '--spacing'], (value) => [decl('row-gap', value)])
-//
-//   spacingUtility(
-//     'space-y',
-//     ['--space', '--spacing'],
-//     (value) => [
-//       atRoot([property('--tw-space-y-reverse', '0')]),
-//       styleRule(':where(& > :not(:last-child))', [
-//         decl('--tw-sort', 'column-gap'),
-//         decl('--tw-space-y-reverse', '0'),
-//         decl('margin-block-start', `calc(${value} * var(--tw-space-y-reverse))`),
-//         decl('margin-block-end', `calc(${value} * calc(1 - var(--tw-space-y-reverse)))`),
-//       ]),
-//     ],
-//     { supportsNegative: true },
-//   )
-//
-//   for (const [name, property] of [
-//     ['py', 'padding-block'],
-//     ['pt', 'padding-top'],
-//     ['pb', 'padding-bottom'],
-//   ] as const) {
-//     spacingUtility(name, ['--padding', '--spacing'], (value) => [decl(property, value)])
-//   }
-//
-//   // /**
-//   //  * @css `vertical-align`
-//   //  */
-//   // functionalUtility('align', {
-//   //   handle: (value) => [decl('vertical-align', value)],
-//   //   themeKeys: [],
-//   // })
-// }
-//
-// function property(ident: string, initialValue?: string, syntax?: string) {
-//   return atRule('@property', ident, [
-//     decl('syntax', syntax ? `"${syntax}"` : `"*"`),
-//     decl('inherits', 'false'),
-//
-//     // If there's no initial value, it's important that we omit it rather than
-//     // use an empty value. Safari currently doesn't support an empty
-//     // `initial-value` properly, so we have to design how we use things around
-//     // the guaranteed invalid value instead, which is how `initial-value`
-//     // behaves when omitted.
-//     ...(initialValue ? [decl('initial-value', initialValue)] : []),
-//   ])
-// }

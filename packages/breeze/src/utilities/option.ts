@@ -14,14 +14,19 @@ export function option(
 ): string | undefined
 export function option(
   designSystem: DesignSystem,
-  type: 'array',
+  type: 'array-string',
   ...keys: ThemeKey[]
 ): string[] | undefined
 export function option(
   designSystem: DesignSystem,
-  type: 'array' | 'number' | 'string',
+  type: 'array-number',
   ...keys: ThemeKey[]
-): number | string | string[] | undefined {
+): number[] | undefined
+export function option(
+  designSystem: DesignSystem,
+  type: 'array-number' | 'array-string' | 'number' | 'string',
+  ...keys: ThemeKey[]
+): number | string | number[] | string[] | undefined {
   let value = designSystem.theme.get(keys) ?? undefined
 
   for (const key of keys) {
@@ -38,8 +43,18 @@ export function option(
     return undefined
   }
 
-  if (type === 'array') {
+  if (type === 'array-string') {
     return splitString(value)
+  } else if (type === 'array-number') {
+    const result = splitString(value)
+      ?.map((value) => parseFloat(value))
+      ?.filter((value) => !Number.isNaN(value) && Number.isFinite(value))
+
+    if (result?.length === 0) {
+      return undefined
+    }
+
+    return result
   } else if (type === 'string' || type === 'number') {
     if (
       (value.startsWith(`'`) && value.endsWith(`'`)) ||
@@ -56,7 +71,7 @@ export function option(
   if (type === 'number') {
     const number = parseFloat(value)
 
-    if (Number.isNaN(number) || Number.isFinite(number)) {
+    if (Number.isNaN(number) || !Number.isFinite(number)) {
       return undefined
     }
 

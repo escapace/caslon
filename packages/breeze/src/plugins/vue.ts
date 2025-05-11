@@ -1,6 +1,6 @@
 import { walk, WalkAction } from '../tailwindcss/ast'
-import type { DesignSystem } from '../tailwindcss/design-system'
 import { segment } from '../tailwindcss/utils/segment'
+import type { PluginOptions } from '../types'
 
 function normalizeSelector(selector: string, type: string) {
   // if (selector.includes('::')) return null
@@ -16,7 +16,8 @@ function normalizeSelector(selector: string, type: string) {
   return `:${type}(${selectors.join(', ')})`
 }
 
-export const vue = (designSystem: DesignSystem) => {
+export const vue = (options: PluginOptions) => {
+  const { designSystem } = options
   const variants = designSystem.variants
 
   for (const type of ['deep', 'slotted', 'global']) {

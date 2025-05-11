@@ -1,8 +1,10 @@
-import type { DesignSystem } from '../tailwindcss/design-system'
+import type { PluginOptions } from '../types'
 import { option } from '../utilities/option'
 
-export const colorReferences = (designSystem: DesignSystem) => {
-  const colors = option(designSystem, 'array', '--color-references')
+export const colorReferences = (options: PluginOptions) => {
+  const { designSystem } = options
+
+  const colors = option(designSystem, 'array-string', '--color-references')
 
   if (colors === undefined) {
     return

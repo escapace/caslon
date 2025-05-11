@@ -1,7 +1,9 @@
 import { atRule, styleRule } from '../tailwindcss/ast'
-import type { DesignSystem } from '../tailwindcss/design-system'
+import type { PluginOptions } from '../types'
 
-export const colorScheme = (designSystem: DesignSystem) => {
+export const colorScheme = (options: PluginOptions) => {
+  const { designSystem } = options
+
   designSystem.variants.static('dark', (r) => {
     r.nodes = [
       styleRule('&:not(.light, .light *, .dark, .dark *)', [

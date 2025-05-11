@@ -23,6 +23,7 @@ import { MapLazy, type ThemeEntry } from './tailwindcss/patches'
 import { ThemeOptions } from './tailwindcss/theme'
 import { escape } from './tailwindcss/utils/escape'
 import { DEFAULT_THEME } from './theme'
+import type { PluginOptions } from './types'
 import { parseCss } from './utilities/css-parse'
 import { markUsedTransientVariables } from './utilities/mark-used-transient-variables'
 import { option } from './utilities/option'
@@ -36,6 +37,9 @@ export interface Options {
   loadStyleSheet?: LoadStylesheet
   selector?: string
   theme?: string
+
+  error?: (message: string) => unknown
+  warning?: (message: string) => unknown
 }
 
 const toCss = (value: AstNode[], track?: boolean) =>
@@ -64,10 +68,16 @@ export class Compiler {
       Object.assign(this.options, { selector: option(designSystem, 'string', '--selector') })
     }
 
-    colorReferences(designSystem)
-    vue(designSystem)
-    colorScheme(designSystem)
-    typography(designSystem)
+    const pluginOptions: PluginOptions = {
+      designSystem,
+      error: options.error ?? console.error,
+      warning: options.warning ?? console.warn,
+    }
+
+    colorReferences(pluginOptions)
+    vue(pluginOptions)
+    colorScheme(pluginOptions)
+    typography(pluginOptions)
 
     this.themeValues = Array.from(designSystem.theme.values.entries())
 
