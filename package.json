@@ -7,13 +7,13 @@
   },
   "bugs": "https://github.com/escapace/caslon/issues",
   "devDependencies": {
-    "@commitlint/cli": "19.8.0",
-    "@commitlint/config-conventional": "19.8.0",
+    "@commitlint/cli": "19.8.1",
+    "@commitlint/config-conventional": "19.8.1",
     "@escapace/pnpm-pack": "0.6.0",
     "@ls-lint/ls-lint": "2.3.0",
     "eslint": "9.26.0",
     "eslint-config-escapace": "5.6.0",
-    "knip": "5.53.0",
+    "knip": "5.55.1",
     "lefthook": "1.11.12",
     "prettier": "3.5.3",
     "prettier-config-escapace": "1.2.1",
@@ -30,6 +30,7 @@
   "license": "MPL-2.0",
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
       "esbuild",
       "lefthook"
     ]
