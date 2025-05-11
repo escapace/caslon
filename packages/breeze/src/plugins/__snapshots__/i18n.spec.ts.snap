@@ -1,0 +1,20 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`i18n > . 1`] = `
+{
+  "candidates": [
+    "lang-en:float-right",
+  ],
+  "css": "@layer properties, theme, base, components, utilities;
+@layer utilities {
+  .lang-en\\:float-right {
+    &:lang(en) {
+      float: right;
+    }
+  }
+}
+",
+  "styles": [],
+  "variables": [],
+}
+`;

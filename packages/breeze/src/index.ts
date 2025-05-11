@@ -1,6 +1,7 @@
 /* eslint-disable typescript/no-non-null-assertion */
 import { colorReferences } from './plugins/color-references'
 import { colorScheme } from './plugins/color-scheme'
+import { i18n } from './plugins/i18n'
 import { typography } from './plugins/typography'
 import { vue } from './plugins/vue'
 import { Polyfills } from './tailwindcss'
@@ -78,6 +79,7 @@ export class Compiler {
     vue(pluginOptions)
     colorScheme(pluginOptions)
     typography(pluginOptions)
+    i18n(pluginOptions)
 
     this.themeValues = Array.from(designSystem.theme.values.entries())
 
