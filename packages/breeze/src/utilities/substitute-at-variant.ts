@@ -16,7 +16,6 @@ export const substituteAtVariant = (ast: AstNode[], designSystem: DesignSystem) 
       // Legacy `@variant` at-rules containing `@slot` or without a body should
       // be considered a `@custom-variant` at-rule.
       if (parent === null) {
-        // TODO: throw?
         replaceWith([])
       }
 

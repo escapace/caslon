@@ -1,9 +1,7 @@
-/* eslint-disable typescript/strict-boolean-expressions */
 import { calculateClamp, calculateTypeSize, checkWCAG } from '@caslon/utopia'
 import { atRule, decl, styleRule, type AstNode } from '../tailwindcss/ast'
 import type { ThemeValueResolver } from '../tailwindcss/patches'
 import { ThemeOptions } from '../tailwindcss/theme'
-import type { SuggestionDefinition, UtilityDescription } from '../tailwindcss/utilities'
 import { escape } from '../tailwindcss/utils/escape'
 import { inferDataType, isValidSpacingMultiplier } from '../tailwindcss/utils/infer-data-type'
 import type { PluginOptions } from '../types'
@@ -232,211 +230,129 @@ const createStyleVariables = (options: TypographyOptions) => {
   }
 }
 
+const createAstNodes = (options: {
+  primaryStack: string
+  stack: string
+  lineHeight?: string
+  xHeight?: string
+}) => {
+  const { lineHeight, primaryStack, stack: prefix, xHeight } = options
+
+  const isPrimary = prefix === primaryStack
+
+  const declarations: AstNode[] = [
+    decl('font-family', `var(--${prefix}-font-family)`),
+    decl('font-stretch', `var(--${prefix}-font-stretch)`),
+    decl('font-style', `var(--${prefix}-font-style)`),
+    decl('font-variation-settings', `var(--${prefix}-font-variation-settings)`),
+    decl('font-weight', `var(--${prefix}-font-weight)`),
+  ]
+
+  if (typeof lineHeight === 'string') {
+    declarations.push(decl('--line-height', lineHeight))
+  }
+
+  if (typeof xHeight === 'string') {
+    declarations.push(decl('--x-height', xHeight))
+  }
+
+  declarations.push(
+    decl(
+      '--tw-line-height-ratio',
+      isPrimary
+        ? `1`
+        : `calc((var(--${prefix}-x-height-scale) * (var(--line-height, ${DEFAULT_LINE_HEIGHT}) * var(--${primaryStack}-cap-height) + var(--${primaryStack}-leading)) - var(--${prefix}-leading)) / (var(--line-height, ${DEFAULT_LINE_HEIGHT}) * var(--${prefix}-cap-height)))`,
+    ),
+    decl(
+      '--tw-line-height',
+      `(var(--line-height, ${DEFAULT_LINE_HEIGHT}) * var(--tw-line-height-ratio))`,
+    ),
+    decl(
+      '--tw-cap-height',
+      `((var(--x-height, ${DEFAULT_X_HEIGHT}) * var(--${prefix}-cap-height)) / var(--${prefix}-x-height))`,
+    ),
+    decl('--tw-font-size', `(var(--tw-cap-height) / var(--${prefix}-cap-height))`),
+    decl('--tw-vertical-align', `(var(--tw-font-size) * var(--${prefix}-leading))`),
+    decl(
+      `--tw-line-height-length`,
+      `((var(--tw-line-height) * var(--tw-cap-height)) + var(--tw-vertical-align))`,
+    ),
+    decl(`font-size`, `calc(var(--tw-font-size))`),
+    decl(`line-height`, `calc(var(--tw-line-height-length))`),
+
+    atRule('@supports', '(text-box: trim-both ex alphabetic)', [
+      decl('text-box', 'trim-both ex alphabetic'),
+    ]),
+
+    atRule('@supports', 'not (text-box: trim-both ex alphabetic)', [
+      decl(
+        `--tw-text-box-trim-start`,
+        `(-1 * var(--tw-font-size) * (((2 * var(--${prefix}-leading)) + (var(--${prefix}-cap-height) * (var(--tw-line-height) + 1)) - (2 * var(--${prefix}-x-height)) - var(--${prefix}-line-gap)) / 2))`,
+      ),
+      decl(
+        `--tw-text-box-trim-end`,
+        `((var(--tw-cap-height) * (var(--tw-line-height) - 1) / 2) * -1)`,
+      ),
+      styleRule('&::before', [
+        decl('display', 'table'),
+        decl('content', `''`),
+        decl('margin-bottom', 'calc(var(--tw-text-box-trim-start))'),
+      ]),
+      styleRule('&::after', [
+        decl('display', 'table'),
+        decl('content', `''`),
+        decl('margin-top', 'calc(var(--tw-text-box-trim-end))'),
+      ]),
+    ]),
+  )
+
+  return declarations
+}
+
 const createStyleUtilities = (options: TypographyOptions) => {
   const { designSystem } = options
   const { theme, utilities } = designSystem
+  const { primaryStack } = options
 
-  // @ts-expect-error untyped
-  const { suggest } = utilities.references as {
-    functionalUtility: (classRoot: string, desc: UtilityDescription) => void
-    staticUtility: (
-      className: string,
-      declarations: Array<(() => AstNode) | [string, string]>,
-    ) => void
-    suggest: (classRoot: string, defns: () => SuggestionDefinition[]) => void
-  }
+  for (const stack of options.stacks) {
+    utilities.functional(stack, (candidate) => {
+      const xHeight =
+        candidate.value === null
+          ? null
+          : candidate.value.kind === 'named'
+            ? isValidTypeScale(candidate.value.value)
+              ? theme.resolve(candidate.value.value, ['--x-height'])
+              : null
+            : candidate.value.kind === 'arbitrary'
+              ? inferDataType(candidate.value.value, ['length', 'percentage']) === null
+                ? null
+                : candidate.value.value
+              : null
 
-  for (const prefix of options.stacks) {
-    const isPrimary = prefix === options.primaryStack
-
-    const qwe = (xHeight?: string, lineHeight?: string) => {
-      // TODO: fallback
-      const declarations: AstNode[] = [
-        decl('font-family', `var(--${prefix}-font-family)`),
-        decl('font-stretch', `var(--${prefix}-font-stretch)`),
-        decl('font-style', `var(--${prefix}-font-style)`),
-        decl('font-variation-settings', `var(--${prefix}-font-variation-settings)`),
-        decl('font-weight', `var(--${prefix}-font-weight)`),
-      ]
-
-      if (typeof lineHeight === 'string') {
-        if (!isValidLineHeight(lineHeight)) {
-          return null
-        }
-
-        declarations.push(decl('--line-height', lineHeight))
+      if (xHeight === null) {
+        return null
       }
 
-      if (typeof xHeight === 'string') {
-        declarations.push(decl('--x-height', xHeight))
+      const lineHeight =
+        candidate.modifier === null
+          ? undefined
+          : candidate.modifier?.kind === 'named'
+            ? isValidLineHeight(candidate.modifier.value) || candidate.modifier.value === 'lh'
+              ? candidate.modifier.value
+              : null
+            : null
+
+      if (lineHeight === null) {
+        return null
       }
 
-      declarations.push(
-        decl(
-          '--tw-line-height-ratio',
-          isPrimary
-            ? `1`
-            : `calc((var(--${prefix}-x-height-scale) * (var(--line-height, ${DEFAULT_LINE_HEIGHT}) * var(--${options.primaryStack}-cap-height) + var(--${options.primaryStack}-leading)) - var(--${prefix}-leading)) / (var(--line-height, ${DEFAULT_LINE_HEIGHT}) * var(--${prefix}-cap-height)))`,
-        ),
-        decl(
-          '--tw-line-height',
-          `(var(--line-height, ${DEFAULT_LINE_HEIGHT}) * var(--tw-line-height-ratio))`,
-        ),
-        decl(
-          '--tw-cap-height',
-          `((var(--x-height, ${DEFAULT_X_HEIGHT}) * var(--${prefix}-cap-height)) / var(--${prefix}-x-height))`,
-        ),
-        decl('--tw-font-size', `(var(--tw-cap-height) / var(--${prefix}-cap-height))`),
-        decl('--tw-vertical-align', `(var(--tw-font-size) * var(--${prefix}-leading))`),
-        decl(
-          `--tw-line-height-length`,
-          `((var(--tw-line-height) * var(--tw-cap-height)) + var(--tw-vertical-align))`,
-        ),
-        decl(`font-size`, `calc(var(--tw-font-size))`),
-        decl(`line-height`, `calc(var(--tw-line-height-length))`),
-
-        atRule('@supports', '(text-box: trim-both ex alphabetic)', [
-          decl('text-box', 'trim-both ex alphabetic'),
-        ]),
-
-        atRule('@supports', 'not (text-box: trim-both ex alphabetic)', [
-          decl(
-            `--tw-text-box-trim-start`,
-            `(-1 * var(--tw-font-size) * (((2 * var(--${prefix}-leading)) + (var(--${prefix}-cap-height) * (var(--tw-line-height) + 1)) - (2 * var(--${prefix}-x-height)) - var(--${prefix}-line-gap)) / 2))`,
-          ),
-          decl(
-            `--tw-text-box-trim-end`,
-            `((var(--tw-cap-height) * (var(--tw-line-height) - 1) / 2) * -1)`,
-          ),
-          styleRule('&::before', [
-            decl('display', 'table'),
-            decl('content', `''`),
-            decl('margin-bottom', 'calc(var(--tw-text-box-trim-start))'),
-          ]),
-          styleRule('&::after', [
-            decl('display', 'table'),
-            decl('content', `''`),
-            decl('margin-top', 'calc(var(--tw-text-box-trim-end))'),
-          ]),
-        ]),
-        // TODO: vertical-align: calc(var(--tw-vertical-align));
-      )
-
-      return declarations
-    }
-
-    utilities.functional(prefix, (candidate) => {
-      if (!candidate.value) {
-        return qwe(undefined, candidate.modifier?.value)
-      }
-
-      if (candidate.value.kind === 'arbitrary') {
-        const value: string | null = candidate.value.value
-        const type =
-          candidate.value.dataType ??
-          inferDataType(value, ['color', 'length', 'percentage', 'absolute-size', 'relative-size'])
-
-        switch (type) {
-          case 'absolute-size':
-          case 'length':
-          case 'percentage':
-          case 'relative-size':
-          case 'size': {
-            if (candidate.modifier) {
-              let modifier =
-                candidate.modifier.kind === 'arbitrary'
-                  ? candidate.modifier.value
-                  : theme.resolve(candidate.modifier.value, ['--leading'])
-
-              if (!modifier && isValidLineHeight(candidate.modifier.value)) {
-                modifier = candidate.modifier.value
-              }
-
-              // Shorthand for `leading-none`
-              if (!modifier && candidate.modifier.value === 'none') {
-                modifier = '1'
-              }
-
-              if (modifier) {
-                return qwe(value, modifier)
-              }
-
-              return null
-            }
-
-            return qwe(value)
-          }
-          default: {
-            return null
-            // value = asColor(value, candidate.modifier, theme)
-            // if (value === null) return
-            //
-            // return [decl('color', value)]
-          }
-        }
-      }
-
-      // // `color` property
-      // {
-      //   const value = resolveThemeColor(candidate, theme, ['--text-color', '--color'])
-      //   if (value) {
-      //     return [decl('color', value)]
-      //   }
-      // }
-
-      // `font-size` property
-      {
-        const value = theme.resolveWith(candidate.value.value, ['--x-height'])
-        if (value) {
-          const [fontSize, options = {}] = Array.isArray(value) ? value : [value]
-
-          if (candidate.modifier) {
-            let modifier =
-              candidate.modifier.kind === 'arbitrary'
-                ? candidate.modifier.value
-                : theme.resolve(candidate.modifier.value, ['--leading'])
-
-            if (!modifier && isValidLineHeight(candidate.modifier.value)) {
-              // const multiplier = theme.resolve(null, ['--spacing'])
-              // if (!multiplier) return null
-              modifier = candidate.modifier.value
-            }
-
-            // Shorthand for `leading-none`
-            if (!modifier && candidate.modifier.value === 'none') {
-              modifier = '1'
-            }
-
-            if (!modifier) {
-              return null
-            }
-
-            return qwe(fontSize, modifier)
-          }
-
-          if (typeof options === 'string') {
-            return qwe(fontSize, options)
-          }
-
-          return qwe(fontSize, options['--line-height'])
-        }
-      }
+      return createAstNodes({
+        lineHeight,
+        primaryStack,
+        stack,
+        xHeight,
+      })
     })
-
-    // TODO: fix this
-    suggest(prefix, () => [
-      {
-        modifiers: Array.from({ length: 21 }, (_, index) => `${index * 5}`),
-        values: ['current', 'inherit', 'transparent'],
-        valueThemeKeys: ['--text-color', '--color'],
-      },
-      {
-        modifiers: [],
-        modifierThemeKeys: ['--leading'],
-        values: [],
-        valueThemeKeys: ['--x-height'],
-      },
-    ])
   }
 }
 
@@ -529,3 +445,27 @@ export const typography = (pluginOptions: PluginOptions) => {
   createSpacingVariables(options)
   createStyleUtilities(options)
 }
+
+// // @ts-expect-error untyped
+// const { suggest } = utilities.references as {
+//   functionalUtility: (classRoot: string, desc: UtilityDescription) => void
+//   staticUtility: (
+//     className: string,
+//     declarations: Array<(() => AstNode) | [string, string]>,
+//   ) => void
+//   suggest: (classRoot: string, defns: () => SuggestionDefinition[]) => void
+// }
+
+// suggest(stack, () => [
+//   {
+//     modifiers: Array.from({ length: 21 }, (_, index) => `${index * 5}`),
+//     values: ['current', 'inherit', 'transparent'],
+//     valueThemeKeys: ['--text-color', '--color'],
+//   },
+//   {
+//     modifiers: [],
+//     modifierThemeKeys: ['--leading'],
+//     values: [],
+//     valueThemeKeys: ['--x-height'],
+//   },
+// ])
