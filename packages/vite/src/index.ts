@@ -1,12 +1,6 @@
 import { Compiler, type Options as BreezeOptions } from '@caslon/breeze'
 import { Scanner, type ChangedContent } from '@tailwindcss/oxide'
-import type { Options as VueOptions } from '@vitejs/plugin-vue'
-import {
-  parse as _parseSFC,
-  type SFCScriptBlock,
-  type SFCStyleBlock,
-  type SFCTemplateBlock,
-} from '@vue/compiler-sfc'
+import type { ResolvedOptions as VueOptions, Api as VuePluginApi } from '@vitejs/plugin-vue'
 import { remove } from 'lodash-es'
 import MagicString, { type SourceMap } from 'magic-string'
 import assert from 'node:assert'
@@ -14,6 +8,9 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import type { ModuleNode, Plugin, ResolvedConfig, TransformResult, ViteDevServer } from 'vite'
 import { createFilter } from 'vite'
+import { parse as _parseSFC, type SFCParseOptions, type SFCParseResult } from 'vue/compiler-sfc'
+import { pipe } from './utilities/pipe'
+import { resolveSFCBlockContent } from './resolve-sfc-block-content'
 import { isFile } from './utilities/is-file'
 import { parseVueRequest, parseVueStyleRequest } from './utilities/parse-vue-request'
 
@@ -22,80 +19,6 @@ interface Options extends Pick<BreezeOptions, 'selector'> {
   include?: string | ReadonlyArray<string | RegExp> | RegExp
   scoped?: boolean | string | ReadonlyArray<string | RegExp> | RegExp
   theme?: string
-}
-
-const createProperties = (options: Options | undefined, config: ResolvedConfig) => {
-  const root = config.root
-
-  const filterVue =
-    options?.include === undefined && options?.exclude === undefined
-      ? createFilter('**/*.vue')
-      : createFilter(options?.include, options?.exclude)
-
-  const filterScoped =
-    options?.scoped === undefined || options?.scoped === false
-      ? false
-      : options.scoped === true
-        ? true
-        : createFilter(options.scoped)
-
-  const pathFileTheme = path.resolve(config.root, options?.theme ?? 'src/styles/theme.css')
-
-  const vueOptions =
-    // eslint-disable-next-line typescript/no-unsafe-member-access
-    config.plugins.find((value) => value.name === 'vite:vue')?.api?.options as Partial<VueOptions>
-
-  // eslint-disable-next-line typescript/no-non-null-assertion
-  const handleHotUpdate = config.plugins.find(
-    (value) => value.name === 'vite:vue',
-  )!.handleHotUpdate!
-
-  assert(typeof handleHotUpdate === 'function')
-
-  const isProduction = vueOptions.isProduction ?? config.isProduction
-
-  const parseSFC = vueOptions.compiler?.parse ?? _parseSFC
-
-  const cssPlugin = config.plugins.find((value) => value.name === 'vite:css-post')
-
-  const cssTransform =
-    cssPlugin?.transform !== undefined && 'handler' in cssPlugin.transform
-      ? cssPlugin?.transform.handler
-      : cssPlugin?.transform
-
-  assert(typeof cssTransform === 'function')
-
-  const state = new Map<string, State>()
-
-  const mode = config.mode
-
-  const sourcemap = {
-    css:
-      config.mode === 'development'
-        ? (config.css.devSourcemap ?? false) ||
-          config.dev.sourcemap === true ||
-          (config.dev.sourcemap !== false ? config.dev.sourcemap?.css === true : false)
-        : false,
-  }
-
-  const compiler = new Compiler()
-
-  return {
-    compiler,
-    cssTransform,
-    handleHotUpdate,
-    mode,
-    sourcemap,
-    state,
-    // componentId,
-    filterScoped,
-    filterVue,
-    isProduction,
-    parseSFC,
-    pathFileTheme,
-    root,
-    vueOptions,
-  }
 }
 
 interface StateTheme {
@@ -120,69 +43,62 @@ type State = StateSFC | StateStyle | StateTheme
 
 const PLACEHOLDER = '__CASLON_PLACEHOLDER__'
 
-const resolveSFCBlockContent = async (
-  value: SFCScriptBlock | SFCStyleBlock | SFCTemplateBlock | null,
-  directory: string,
-) => {
-  if (value === null) {
-    return
-  }
+const createReset =
+  (properties: {
+    compiler: Compiler
+    indice: Map<string, State>
+    pathFileTheme: string
+    updateState: (id: string, state: State) => void
+    options?: Options
+  }) =>
+  async () => {
+    properties.indice.clear()
 
-  const filePath = value.src === undefined ? undefined : path.resolve(directory, value.src)
+    const theme = await isFile(properties.pathFileTheme)
 
-  const content = filePath === undefined ? value.content : await readFile(filePath, 'utf-8')
-
-  const extension =
-    value.src === undefined
-      ? value.lang === undefined
-        ? { script: 'js', style: 'css', template: 'vue' }[value.type]
-        : { css: 'css', js: 'js', ts: 'ts' }[value.lang]
-      : path.extname(value.src).slice(1)
-
-  if (typeof content === 'string' && content.trim().length !== 0) {
-    assert(
-      extension !== undefined && ['css', 'html', 'js', 'ts', 'vue'].includes(extension),
-      `Unknown extension '${extension ?? value.lang}'`,
-    )
-
-    return {
-      content: value.type === 'template' ? `<template>\n${content}\n</template>` : content,
-      extension,
-      filePath,
+    if (theme) {
+      properties.updateState(properties.pathFileTheme, { type: 'theme' })
     }
+
+    await properties.compiler.reset({
+      directory: theme ? path.dirname(properties.pathFileTheme) : undefined,
+      // error: properties.error,
+      // warning: properties.warn,
+
+      selector: properties.options?.selector,
+      theme: theme ? await readFile(properties.pathFileTheme, 'utf8') : undefined,
+
+      loadStyleSheet: async (id, directory) => {
+        const filePath = path.resolve(directory, id)
+        const base = path.dirname(filePath)
+        const content = await readFile(filePath, 'utf8')
+
+        properties.updateState(filePath, { type: 'theme' })
+
+        return { base, content, path: filePath }
+      },
+    })
   }
 
-  return undefined
-}
-
-export function caslon(options?: Options): Plugin[] {
-  let properties: {
-    addWatchFile?: (id: string) => void
-    error?: (error: string) => never
-    info?: (message: string) => never
-    server?: ViteDevServer | undefined
-    warn?: (message: string) => never
-  } & ReturnType<typeof createProperties>
-
-  const updateState = (id: string, state: State) => {
-    properties?.addWatchFile?.(id)
-    properties.server?.watcher.add?.(id)
-
-    properties.state.set(id, state)
-  }
-
-  async function transformSFC(
-    filePath: string,
-    source?: string,
-  ): Promise<TransformResult | undefined> {
+const createTransformSFC =
+  (properties: {
+    compiler: Compiler
+    indice: Map<string, State>
+    parseSFC: (source: string, options?: SFCParseOptions) => SFCParseResult
+    pathFileTheme: string
+    sourcemap: {
+      css: boolean
+    }
+    updateState: (id: string, state: State) => void
+    options?: Options
+    vueOptions?: VueOptions
+  }) =>
+  async (filePath: string, source?: string): Promise<TransformResult | undefined> => {
     const code = source ?? (await readFile(filePath, 'utf8'))
     const scanner = new Scanner({ sources: [] })
     const directory = path.dirname(filePath)
 
-    const scoped =
-      typeof properties.filterScoped === 'function'
-        ? properties.filterScoped(filePath)
-        : properties.filterScoped
+    const scoped = /^\p{Z}*<!--\p{Z}*caslon-scoped\p{Z}*-->\p{Z}*$/mu.test(code)
 
     const magic = new MagicString(code, { filename: filePath })
 
@@ -274,7 +190,7 @@ export function caslon(options?: Options): Plugin[] {
 
         magic.update(0, magic.length(), code)
 
-        properties.state.set(style.filePath, {
+        properties.indice.set(style.filePath, {
           code: magic.toString(),
           get map() {
             return properties.sourcemap.css
@@ -290,7 +206,7 @@ export function caslon(options?: Options): Plugin[] {
     const magicHasChanged = magic.hasChanged()
 
     if (magicHasChanged || styles.some((value) => typeof value?.filePath === 'string')) {
-      updateState(filePath, { scoped, type: 'sfc', ...candidatesAndVariables })
+      properties.updateState(filePath, { scoped, type: 'sfc', ...candidatesAndVariables })
     }
 
     return magicHasChanged
@@ -310,60 +226,215 @@ export function caslon(options?: Options): Plugin[] {
       : undefined
   }
 
-  const reset = async () => {
-    properties.state.clear()
+const createProperties = (options: Options | undefined, config: ResolvedConfig) => {
+  const root = config.root
 
-    const theme = await isFile(properties.pathFileTheme)
+  const filterVue =
+    options?.include === undefined && options?.exclude === undefined
+      ? createFilter('**/*.vue', undefined, { resolve: root })
+      : createFilter(options?.include, options?.exclude, { resolve: root })
 
-    if (theme) {
-      updateState(properties.pathFileTheme, { type: 'theme' })
-    }
+  // const filterScoped =
+  //   options?.scoped === undefined || options?.scoped === false
+  //     ? false
+  //     : options.scoped === true
+  //       ? true
+  //       : createFilter(options.scoped, undefined, { resolve: root })
 
-    await properties.compiler.reset({
-      directory: theme ? path.dirname(properties.pathFileTheme) : undefined,
-      error: properties.error,
-      loadStyleSheet: async (id, directory) => {
-        const filePath = path.resolve(directory, id)
-        const base = path.dirname(filePath)
-        const content = await readFile(filePath, 'utf8')
+  const pathFileTheme = path.resolve(config.root, options?.theme ?? 'src/styles/theme.css')
 
-        updateState(filePath, { type: 'theme' })
+  const vueOptions: VueOptions | undefined = (
+    config.plugins.find((value) => value.name === 'vite:vue') as Plugin<VuePluginApi>
+  ).api?.options
 
-        return { base, content, path: filePath }
-      },
-      selector: options?.selector,
-      theme: theme ? await readFile(properties.pathFileTheme, 'utf8') : undefined,
-      warning: properties.warn,
-    })
+  // eslint-disable-next-line typescript/no-non-null-assertion
+  const handleHotUpdate = config.plugins.find(
+    (value) => value.name === 'vite:vue',
+  )!.handleHotUpdate!
+
+  assert(typeof handleHotUpdate === 'function')
+
+  const parseSFC = vueOptions?.compiler?.parse ?? _parseSFC
+
+  const cssPlugin = config.plugins.find((value) => value.name === 'vite:css-post')
+
+  const cssTransform =
+    cssPlugin?.transform !== undefined && 'handler' in cssPlugin.transform
+      ? cssPlugin?.transform.handler
+      : cssPlugin?.transform
+
+  assert(typeof cssTransform === 'function')
+
+  const indice = new Map<string, State>()
+
+  const sourcemap = {
+    css:
+      config.mode === 'development'
+        ? (config.css.devSourcemap ?? false) ||
+          config.dev.sourcemap === true ||
+          (config.dev.sourcemap !== false ? config.dev.sourcemap?.css === true : false)
+        : false,
   }
+
+  const compiler = new Compiler()
+
+  let addWatchFile: ((id: string) => void) | undefined
+  let server: ViteDevServer | undefined
+  const error: ((error: string) => never | void) | undefined = console.error
+  const info: ((message: string) => never | void) | undefined = console.log
+  const warn: ((message: string) => never | void) | undefined = console.warn
+
+  const properties = {
+    compiler,
+    cssTransform,
+    filterVue,
+    handleHotUpdate,
+    indice,
+    options,
+    parseSFC,
+    pathFileTheme,
+    root,
+    sourcemap,
+    vueOptions,
+
+    addWatchFile,
+    error,
+    info,
+    server,
+    warn,
+  }
+
+  return pipe(
+    properties,
+    (properties) =>
+      Object.assign(properties, {
+        updateState: (id: string, state: State) => {
+          properties.addWatchFile?.(id)
+          properties.server?.watcher.add?.(id)
+          properties.indice.set(id, state)
+        },
+      }),
+    (properties) =>
+      Object.assign(properties, {
+        reset: createReset(properties),
+      }),
+    (properties) =>
+      Object.assign(properties, {
+        transformSFC: createTransformSFC(properties),
+      }),
+  )
+}
+
+type Properties = ReturnType<typeof createProperties>
+
+export function caslon(options?: Options): Plugin[] {
+  let properties: Properties
 
   return [
     {
-      async buildStart() {
-        const { addWatchFile: watchFile, error, info, warn } = this
+      enforce: 'pre',
+      name: '@caslon/vite',
 
-        Object.assign(properties, {
-          error: error.bind(this),
-          info: info.bind(this),
-          warn: warn.bind(this),
-          watchFile: watchFile.bind(this),
-        })
-
-        await reset()
-      },
       configResolved(resolvedConfig) {
         properties = createProperties(options, resolvedConfig)
       },
+
       configureServer(server) {
         Object.assign(properties, { server })
 
-        server.watcher.on('add', () => void reset())
-        server.watcher.on('unlink', () => void reset())
+        server.watcher.on('add', () => void properties.reset())
+        server.watcher.on('unlink', () => void properties.reset())
       },
-      enforce: 'pre',
+
+      async buildStart() {
+        const { addWatchFile, error, info, warn } = this
+
+        Object.assign(properties, {
+          addWatchFile: addWatchFile.bind(this),
+          error: error.bind(this),
+          info: info.bind(this),
+          warn: warn.bind(this),
+        })
+
+        await properties.reset()
+      },
+
+      shouldTransformCachedModule({ id }) {
+        if (properties.filterVue(id)) {
+          return true
+        }
+
+        if (properties.indice.has(id)) {
+          return true
+        }
+
+        const filePath = parseVueStyleRequest(id)?.filePath
+
+        if (typeof filePath === 'string' && properties.indice.has(filePath)) {
+          return true
+        }
+
+        return undefined
+      },
+
+      transform: {
+        async handler(code, id) {
+          if (properties.indice.get(id)?.type === 'theme') {
+            await properties.reset()
+
+            return { code: '', moduleSideEffects: false }
+          } else if (properties.filterVue(id)) {
+            return await properties.transformSFC(id, code)
+          } else {
+            const value = parseVueStyleRequest(id)
+
+            if (value === undefined) {
+              return
+            }
+
+            const { filePath, scoped } = value
+
+            const state = properties.indice.get(filePath)
+
+            if (state?.type === 'style') {
+              return {
+                code: state.code,
+                map: state.map,
+              }
+            } else if (
+              state?.type === 'sfc' &&
+              code.includes(PLACEHOLDER) &&
+              scoped !== undefined
+            ) {
+              const magic = new MagicString(code)
+
+              magic.replaceAll(PLACEHOLDER, `:global([data-v-${scoped}])`)
+
+              return magic.hasChanged()
+                ? {
+                    code: magic.toString(),
+                    get map() {
+                      return properties.sourcemap.css
+                        ? magic.generateMap({
+                            hires: true,
+                            includeContent: true,
+                            source: filePath,
+                          })
+                        : null
+                    },
+                  }
+                : undefined
+            }
+
+            return
+          }
+        },
+        order: 'pre',
+      },
+
       handleHotUpdate: {
         async handler(context) {
-          let state = properties.state.get(context.file)
+          let state = properties.indice.get(context.file)
 
           const invalidatedModules = new Set<ModuleNode>()
           const nodes = new Set<ModuleNode>(context.modules)
@@ -374,8 +445,8 @@ export function caslon(options?: Options): Plugin[] {
               state?.type === 'style' ? state.sfc : undefined,
               state?.type === 'theme'
                 ? [
-                    ...properties.state.keys(),
-                    ...[...properties.state.values()].map((value) =>
+                    ...properties.indice.keys(),
+                    ...[...properties.indice.values()].map((value) =>
                       value.type === 'style' ? value.sfc : undefined,
                     ),
                   ]
@@ -391,13 +462,13 @@ export function caslon(options?: Options): Plugin[] {
 
           if (state === undefined) {
             if (properties.filterVue(context.file)) {
-              await transformSFC(context.file)
+              await properties.transformSFC(context.file)
             } else {
               return
             }
           }
 
-          state = properties.state.get(context.file)
+          state = properties.indice.get(context.file)
 
           if (state?.type === 'theme') {
             for (const node of nodes) {
@@ -410,14 +481,14 @@ export function caslon(options?: Options): Plugin[] {
             }
 
             if (state.type === 'theme') {
-              await reset()
+              await properties.reset()
             }
 
             context.server.ws.send({ type: 'full-reload' })
             return []
           } else if (state?.type === 'sfc' || state?.type === 'style') {
             if (state.type === 'style') {
-              await transformSFC(state.sfc)
+              await properties.transformSFC(state.sfc)
             }
 
             for (const node of nodes) {
@@ -429,6 +500,7 @@ export function caslon(options?: Options): Plugin[] {
         },
         order: 'pre',
       },
+
       async renderChunk(_, chunk) {
         const variables = new Set<string>()
         const candidates = new Set<string>()
@@ -443,9 +515,9 @@ export function caslon(options?: Options): Plugin[] {
 
           const { filePath } = request
 
-          if (properties.state.has(filePath)) {
+          if (properties.indice.has(filePath)) {
             // eslint-disable-next-line typescript/no-non-null-assertion
-            const state = properties.state.get(filePath)!
+            const state = properties.indice.get(filePath)!
 
             assert(state.type !== 'theme')
 
@@ -505,80 +577,6 @@ export function caslon(options?: Options): Plugin[] {
           renderedExports: [],
           renderedLength: 0,
         }
-      },
-
-      transform: {
-        async handler(code, id) {
-          if (properties.state.get(id)?.type === 'theme') {
-            await reset()
-
-            return { code: '', moduleSideEffects: false }
-          } else if (properties.filterVue(id)) {
-            return await transformSFC(id, code)
-          } else {
-            const value = parseVueStyleRequest(id)
-
-            if (value === undefined) {
-              return
-            }
-
-            const { filePath, scoped } = value
-
-            const state = properties.state.get(filePath)
-
-            if (state?.type === 'style') {
-              return {
-                code: state.code,
-                map: state.map,
-              }
-            } else if (
-              state?.type === 'sfc' &&
-              code.includes(PLACEHOLDER) &&
-              scoped !== undefined
-            ) {
-              const magic = new MagicString(code)
-
-              magic.replaceAll(PLACEHOLDER, `:global([data-v-${scoped}])`)
-
-              return magic.hasChanged()
-                ? {
-                    code: magic.toString(),
-                    get map() {
-                      return properties.sourcemap.css
-                        ? magic.generateMap({
-                            hires: true,
-                            includeContent: true,
-                            source: filePath,
-                          })
-                        : null
-                    },
-                  }
-                : undefined
-            }
-
-            return
-          }
-        },
-        order: 'pre',
-      },
-
-      name: '@caslon/vite',
-      shouldTransformCachedModule({ id }) {
-        if (properties.filterVue(id)) {
-          return true
-        }
-
-        if (properties.state.has(id)) {
-          return true
-        }
-
-        const filePath = parseVueStyleRequest(id)?.filePath
-
-        if (typeof filePath === 'string' && properties.state.has(filePath)) {
-          return true
-        }
-
-        return undefined
       },
     },
   ]

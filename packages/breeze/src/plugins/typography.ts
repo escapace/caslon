@@ -294,12 +294,12 @@ const createAstNodes = (options: {
         `((var(--tw-cap-height) * (var(--tw-line-height) - 1) / 2) * -1)`,
       ),
       styleRule('&::before', [
-        decl('display', 'table'),
+        decl('display', 'inline-block'),
         decl('content', `''`),
         decl('margin-bottom', 'calc(var(--tw-text-box-trim-start))'),
       ]),
       styleRule('&::after', [
-        decl('display', 'table'),
+        decl('display', 'inline-block'),
         decl('content', `''`),
         decl('margin-top', 'calc(var(--tw-text-box-trim-end))'),
       ]),
