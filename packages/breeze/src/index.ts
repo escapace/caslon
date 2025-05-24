@@ -21,6 +21,7 @@ import { substituteFunctions } from './tailwindcss/css-functions'
 import { parse } from './tailwindcss/css-parser'
 import type { DesignSystem } from './tailwindcss/design-system'
 import { MapLazy, type ThemeEntry } from './tailwindcss/patches'
+import { createSourceMap, type DecodedSourceMap } from './tailwindcss/source-maps/source-map'
 import { ThemeOptions } from './tailwindcss/theme'
 import { escape } from './tailwindcss/utils/escape'
 import { DEFAULT_THEME } from './theme'
@@ -237,18 +238,41 @@ export class Compiler {
     }
   }
 
-  private transformStyle(css: string | undefined) {
+  private transformStyle(properties?: string | { css?: string; filePath?: string }) {
+    if (properties === undefined) {
+      return
+    }
+
+    const isPropertiesString = typeof properties === 'string'
+
+    const css = isPropertiesString ? properties : properties.css
+    const filePath = isPropertiesString ? undefined : properties.filePath
+
     if (css === undefined) {
       return
     }
 
-    const ast = parse(css)
+    const sourcemap = typeof filePath === 'string'
+
+    const ast = parse(css, sourcemap ? { from: filePath } : undefined)
 
     substituteAtVariant(ast, this.designSystem)
     substituteFunctions(ast, this.designSystem)
     substituteAtApply(ast, this.designSystem)
 
-    return toCss(optimizeAst(ast, this.designSystem, polyfills))
+    const newAst = optimizeAst(ast, this.designSystem, polyfills)
+    const newCss = toCss(newAst, sourcemap)
+
+    if (newCss === undefined) {
+      return undefined
+    }
+
+    return {
+      css: newCss,
+      get map() {
+        return sourcemap ? createSourceMap({ ast: newAst }) : undefined
+      },
+    }
   }
 
   private candidatesToCss(rawCandidates: string[], options?: Partial<Pick<Options, 'selector'>>) {
@@ -302,13 +326,19 @@ export class Compiler {
   public compile(
     options?: {
       candidates?: string[]
-      styles?: Array<string | undefined>
+      styles?: Array<string | { css?: string; filePath?: string } | undefined>
       variables?: string[]
     } & Partial<Pick<Options, 'selector'>>,
   ): {
     candidates: string[]
     css: string | undefined
-    styles: Array<string | undefined>
+    styles: Array<
+      | {
+          css: string
+          readonly map: DecodedSourceMap | undefined
+        }
+      | undefined
+    >
     variables: string[]
   } {
     this.designSystem.theme.values = new MapLazy(

@@ -249,7 +249,8 @@ exports[`compiler > . 9`] = `
   "candidates": [],
   "css": undefined,
   "styles": [
-    ":root {
+    {
+      "css": ":root {
   &:not(.light, .light *, .dark, .dark *) {
     @media (prefers-color-scheme: dark) {
       background-color: var(--color-amber-200);
@@ -266,6 +267,8 @@ exports[`compiler > . 9`] = `
   }
 }
 ",
+      "map": undefined,
+    },
   ],
   "variables": [
     "--color-amber-50",

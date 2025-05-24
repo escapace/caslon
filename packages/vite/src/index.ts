@@ -143,7 +143,11 @@ const createTransformSFC =
     } = properties.compiler.compile({
       candidates,
       selector: scoped ? PLACEHOLDER : undefined,
-      styles: styles.map((value) => value?.content),
+      styles: styles.map((value) =>
+        value === undefined
+          ? undefined
+          : { css: value.content, filePath: properties.sourcemap.css ? value.filePath : undefined },
+      ),
     })
 
     if (theme !== undefined) {
@@ -184,11 +188,11 @@ const createTransformSFC =
       if (style.filePath === undefined) {
         const { end, start } = style.block.loc
 
-        magic.overwrite(start.offset, end.offset, `\n${code}\n`)
+        magic.overwrite(start.offset, end.offset, `\n${code.css}\n`)
       } else {
         const magic = new MagicString(style.content)
 
-        magic.update(0, magic.length(), code)
+        magic.update(0, magic.length(), code.css)
 
         properties.indice.set(style.filePath, {
           code: magic.toString(),
@@ -268,12 +272,7 @@ const createProperties = (options: Options | undefined, config: ResolvedConfig) 
   const indice = new Map<string, State>()
 
   const sourcemap = {
-    css:
-      config.mode === 'development'
-        ? (config.css.devSourcemap ?? false) ||
-          config.dev.sourcemap === true ||
-          (config.dev.sourcemap !== false ? config.dev.sourcemap?.css === true : false)
-        : false,
+    css: config.mode === 'development' ? (config.css.devSourcemap ?? false) : false,
   }
 
   const compiler = new Compiler()
