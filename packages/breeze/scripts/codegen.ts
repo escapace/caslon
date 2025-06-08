@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import * as zx from 'zx'
 import { $ } from 'zx'
 
-const TAILWINDS_REF = 'v4.1.7'
+const TAILWINDS_REF = 'v4.1.8'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -28,6 +28,7 @@ const patches = (
   await zx.glob(`*.patch`, { absolute: true, cwd: pathDirectoryPatches, onlyFiles: true })
 ).sort((x, y) => collator.compare(x, y))
 
+// git diff --staged --no-ext-diff
 for (const patch of patches) {
   await $`git apply --whitespace=fix --check ${patch}`
 }

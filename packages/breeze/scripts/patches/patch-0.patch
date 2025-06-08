@@ -109,7 +109,7 @@ index 00000000..24e324e4
 +  }
 +}
 diff --git c/packages/tailwindcss/src/theme.ts i/packages/tailwindcss/src/theme.ts
-index 2928afd3..63ac7634 100644
+index dc9c750a..08a64966 100644
 --- c/packages/tailwindcss/src/theme.ts
 +++ i/packages/tailwindcss/src/theme.ts
 @@ -1,4 +1,5 @@
@@ -139,9 +139,9 @@ index 2928afd3..63ac7634 100644
 +    public keyframes = new Set<AtRule>([]),
    ) {}
  
-   add(key: string, value: string, options = ThemeOptions.NONE, src?: Declaration['src']): void {
+   get size() {
 diff --git c/packages/tailwindcss/src/utilities.ts i/packages/tailwindcss/src/utilities.ts
-index d28a368a..aa008ef7 100644
+index 0fdb5c9f..2eeaf81f 100644
 --- c/packages/tailwindcss/src/utilities.ts
 +++ i/packages/tailwindcss/src/utilities.ts
 @@ -26,6 +26,8 @@ import { replaceShadowColors } from './utils/replace-shadow-colors'
@@ -224,7 +224,7 @@ index d28a368a..aa008ef7 100644
    /**
     * Register a functional utility class like `max-w-*` that maps to tokens in the
     * user's theme.
-@@ -5726,6 +5733,14 @@ export function createUtilities(theme: Theme) {
+@@ -5725,6 +5732,14 @@ export function createUtilities(theme: Theme) {
      },
    ])
  

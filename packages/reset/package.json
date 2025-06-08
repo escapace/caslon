@@ -1,0 +1,23 @@
+{
+  "name": "@caslon/reset",
+  "description": "CSS reset that removes default browser styling and normalizes elements across browsers.",
+  "version": "0.0.0",
+  "author": {
+    "name": "escapace",
+    "email": "opensource@escapace.com"
+  },
+  "exports": {
+    ".": "./index.css"
+  },
+  "files": [
+    "index.css"
+  ],
+  "homepage": "https://github.com/escapace/caslon/tree/trunk/packages/reset#readme",
+  "license": "MPL-2.0",
+  "private": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "type": "module"
+}

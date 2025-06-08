@@ -1,5 +1,5 @@
 {
-  "name": "caslon",
+  "name": "@caslon/service-worker",
   "version": "0.0.0",
   "author": {
     "name": "escapace",
@@ -8,10 +8,12 @@
   "bugs": "https://github.com/escapace/caslon/issues",
   "devDependencies": {
     "@ls-lint/ls-lint": "2.3.1",
+    "@types/node": "22.15.30",
     "@vitest/coverage-v8": "3.2.2",
     "eslint": "9.28.0",
     "eslint-config-escapace": "5.7.1",
     "esroll": "0.4.5",
+    "jsdom": "26.1.0",
     "prettier": "3.5.3",
     "prettier-config-escapace": "1.2.1",
     "syncpack": "13.0.4",
@@ -20,21 +22,44 @@
     "vitest": "3.2.2"
   },
   "engines": {
+    "node": ">=22.15.0",
     "pnpm": ">=10.10.0"
   },
   "exports": {
     ".": {
-      "types": "./lib/types/index.d.ts",
-      "import": "./lib/neutral/index.js"
+      "node": {
+        "import": {
+          "types": "./lib/types/index.d.ts",
+          "default": "./lib/node/index.js"
+        }
+      },
+      "browser": {
+        "import": {
+          "types": "./lib/types/index.d.ts",
+          "default": "./lib/browser/index.js"
+        }
+      },
+      "default": {
+        "import": {
+          "types": "./lib/types/index.d.ts",
+          "default": "./lib/node/index.js"
+        }
+      }
     }
   },
   "files": [
-    "lib/neutral",
+    "lib/browser",
+    "lib/node",
     "lib/types"
   ],
-  "homepage": "https://github.com/escapace/caslon/tree/trunk/packages/caslon#readme",
+  "homepage": "https://github.com/escapace/caslon/tree/trunk/packages/service-worker#readme",
   "license": "MPL-2.0",
-  "module": "lib/neutral/index.js",
+  "peerDependencies": {
+    "@vueuse/core": ">=13.3.0",
+    "pinia": ">=3.0.3",
+    "vue": ">=3.5.16",
+    "workbox-window": ">=7.3.0"
+  },
   "private": false,
   "publishConfig": {
     "access": "public",
@@ -51,5 +76,5 @@
   },
   "sideEffects": false,
   "type": "module",
-  "types": "lib/types/index.d.ts"
+  "types": "./lib/types/index.d.ts"
 }

@@ -1,0 +1,26 @@
+{
+  "builds": {
+    "browser": {
+      "define": {
+        "__ENVIRONMENT__": "\"production\"",
+        "__PLATFORM__": "\"browser\""
+      },
+      "entryPoints": ["src/index.ts"],
+      "mainFields": ["module", "browser", "main"],
+      "outdir": "lib/browser",
+      "platform": "browser",
+      "target": ["chrome135", "firefox137", "edge135", "opera116", "safari18.4"]
+    },
+    "node": {
+      "define": {
+        "__ENVIRONMENT__": "\"production\"",
+        "__PLATFORM__": "\"node\""
+      },
+      "entryPoints": ["src/index.ts"],
+      "mainFields": ["module", "main"],
+      "outdir": "lib/node",
+      "platform": "node",
+      "target": ["node22.15.0"]
+    }
+  }
+}

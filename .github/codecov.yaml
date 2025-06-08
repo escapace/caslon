@@ -23,6 +23,15 @@ flags:
   caslon:
     paths:
       - packages/caslon/
+  reset:
+    paths:
+      - packages/reset/
+  service-worker:
+    paths:
+      - packages/service-worker/
+  utilities:
+    paths:
+      - packages/utilities/
   utopia:
     paths:
       - packages/utopia/

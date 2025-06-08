@@ -1,5 +1,5 @@
 {
-  "name": "caslon",
+  "name": "@caslon/utilities",
   "version": "0.0.0",
   "author": {
     "name": "escapace",
@@ -32,9 +32,13 @@
     "lib/neutral",
     "lib/types"
   ],
-  "homepage": "https://github.com/escapace/caslon/tree/trunk/packages/caslon#readme",
-  "license": "MPL-2.0",
+  "homepage": "https://github.com/escapace/caslon/tree/trunk/packages/utilities#readme",
+  "license": "ISC",
   "module": "lib/neutral/index.js",
+  "peerDependencies": {
+    "@escapace/env": ">=0.1.0",
+    "vue": ">=3.5.16"
+  },
   "private": false,
   "publishConfig": {
     "access": "public",

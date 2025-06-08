@@ -15,9 +15,10 @@
     "**/*.d.ts",
     "lib/**",
     "packages/breeze/src/tailwindcss/**",
-    "packages/breeze/vendor/**"
+    "packages/breeze/vendor/**",
+    "packages/service-worker/src/use-service-worker-synchronize-state.ts"
   ],
-  "ignoreBinaries": ["ncu"],
+  "ignoreBinaries": ["ncu", "taze"],
   "ignoreDependencies": [
     "@commitlint/cli",
     "@microsoft/api-extractor",
