@@ -23,6 +23,9 @@ flags:
   caslon:
     paths:
       - packages/caslon/
+  cepheus:
+    paths:
+      - packages/cepheus/
   reset:
     paths:
       - packages/reset/

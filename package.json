@@ -11,11 +11,11 @@
     "@commitlint/config-conventional": "19.7.1",
     "@escapace/pnpm-pack": "0.5.4",
     "@ls-lint/ls-lint": "2.3.1",
-    "eslint": "9.28.0",
+    "eslint": "9.30.0",
     "eslint-config-escapace": "5.7.1",
     "knip": "5.43.6",
     "lefthook": "1.10.10",
-    "prettier": "3.5.3",
+    "prettier": "3.6.2",
     "prettier-config-escapace": "1.2.1",
     "syncpack": "13.0.4"
   },
@@ -53,7 +53,7 @@
     "workspace:ls-lint": "pnpm run --if-present --workspace-concurrency=4 -r --filter '*' ls-lint",
     "workspace:test": "pnpm run --if-present --workspace-concurrency=4 -r --filter '*' test",
     "workspace:typecheck": "pnpm run --if-present --workspace-concurrency=4 -r --filter '*' typecheck",
-    "workspace:update": "taze major -r --peer -w && pnpm run syncpack"
+    "workspace:update": "taze major -r --peer -w --force && pnpm run syncpack"
   },
   "sideEffects": false,
   "type": "module"

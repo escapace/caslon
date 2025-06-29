@@ -1,7 +1,8 @@
+export { SERVICE_WORKER_STORE_INJECTION_KEY } from './constants'
 export {
-  createServiceWorkerPlugin,
-  useServiceWorkerStore,
-  type CreateServiceWorkerPluginOptions,
+  createServiceWorker,
+  type CreateServiceWorkerOptions,
   type ServiceWorkerStore,
-} from './use-service-worker-store'
-// export { useServiceWorkerSynchronizeState } from './use-service-worker-synchronize-state'
+} from './create-service-worker'
+export { useServiceWorkerStore } from './use-service-worker-store'
+export { useServiceWorkerUpdateLock } from './use-service-worker-update-lock'
