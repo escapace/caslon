@@ -26,6 +26,9 @@ flags:
   cepheus:
     paths:
       - packages/cepheus/
+  i18n:
+    paths:
+      - packages/i18n/
   reset:
     paths:
       - packages/reset/

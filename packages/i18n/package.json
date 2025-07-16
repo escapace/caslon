@@ -46,12 +46,6 @@
         }
       }
     },
-    "./browser": {
-      "import": {
-        "types": "./lib/types/browser.d.ts",
-        "default": "./lib/browser/browser.js"
-      }
-    },
     "./node": {
       "import": {
         "types": "./lib/types/node.d.ts",
@@ -64,7 +58,7 @@
     "lib/node",
     "lib/types"
   ],
-  "homepage": "https://github.com/escapace/caslon/tree/trunk/packages/cepheus#readme",
+  "homepage": "https://github.com/escapace/caslon/tree/trunk/packages/i18n#readme",
   "license": "MPL-2.0",
   "peerDependencies": {
     "@caslon/utilities": "workspace:*",

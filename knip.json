@@ -6,10 +6,10 @@
     "**/test/**/*.?(c|m)[jt]s?(x)",
     "eslint.config.mjs",
     "src/**/example*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,vue}",
+    "src/browser.ts!",
     "src/cli.ts!",
     "src/index.ts!",
     "src/node.ts!",
-    "src/browser.ts!",
     "src/types.ts",
     "vitest.config.*.ts",
     "vitest.config.ts"
