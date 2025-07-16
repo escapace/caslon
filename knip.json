@@ -8,6 +8,8 @@
     "src/**/example*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,vue}",
     "src/cli.ts!",
     "src/index.ts!",
+    "src/node.ts!",
+    "src/browser.ts!",
     "src/types.ts",
     "vitest.config.*.ts",
     "vitest.config.ts"
@@ -17,8 +19,7 @@
     "**/*.d.ts",
     "lib/**",
     "packages/breeze/src/tailwindcss/**",
-    "packages/breeze/vendor/**",
-    "packages/service-worker/src/use-service-worker-synchronize-state.ts"
+    "packages/breeze/vendor/**"
   ],
   "ignoreBinaries": ["ncu", "taze"],
   "ignoreDependencies": [

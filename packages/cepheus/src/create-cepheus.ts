@@ -98,8 +98,15 @@ const createCepheusStore = (options: Partial<CepheusOptions>) =>
 export type CepheusStore = ReturnType<ReturnType<typeof createCepheusStore>>
 
 export const createCepheus = (options: CepheusOptions) => {
-  // eslint-disable-next-line unicorn/consistent-function-scoping, typescript/no-empty-function
-  let dispose = () => {}
+  const disposeRefeference = ref<() => void>()
+
+  const dispose = () => {
+    const { value } = disposeRefeference
+
+    if (value !== undefined) {
+      value()
+    }
+  }
 
   return {
     dispose,
@@ -117,6 +124,7 @@ export const createCepheus = (options: CepheusOptions) => {
           settingsLightness: lightness,
         } = storeToRefs(store)
 
+        // TODO: colors
         const cepheus = createCepheus_({
           chroma,
           colorScheme,
@@ -129,7 +137,7 @@ export const createCepheus = (options: CepheusOptions) => {
         return cepheus
       })!
 
-      dispose = () => {
+      disposeRefeference.value = () => {
         store.$dispose()
         scope.stop()
       }

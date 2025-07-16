@@ -5,6 +5,7 @@ export const cepheusPreferencesSchema = z.object({
   colorScheme: z.enum(['dark', 'light']).optional(),
   contrast: z.number().min(0).max(1).optional(),
   lightness: z.number().min(0).max(1).optional(),
+  // TODO: constants
   palette: z.enum(['no-preference']).or(z.string()).optional(),
 })
 

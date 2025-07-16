@@ -8,10 +8,10 @@
   "bugs": "https://github.com/escapace/caslon/issues",
   "devDependencies": {
     "@ls-lint/ls-lint": "2.3.1",
-    "@types/node": "24.0.7",
+    "@types/node": "24.0.14",
     "@vitest/coverage-v8": "3.2.4",
-    "eslint": "9.30.0",
-    "eslint-config-escapace": "5.7.1",
+    "eslint": "9.31.0",
+    "eslint-config-escapace": "5.8.0",
     "esroll": "0.4.5",
     "jsdom": "26.1.0",
     "prettier": "3.6.2",
@@ -69,19 +69,18 @@
   "peerDependencies": {
     "@caslon/utilities": "workspace:*",
     "@cassiopeia/vue": ">=7.0.3",
-    "@cepheus/plugin": ">=3.0.0",
     "@cepheus/vue": ">=3.0.0",
+    "@escapace/canonicalize": ">=0.1.2",
     "@escapace/env": ">=0.1.0",
     "@pinia/colada": ">=0.17.1",
-    "@unhead/vue": ">=2.0.11",
-    "@vueuse/core": ">=13.4.0",
-    "cassiopeia": ">=7.0.3",
+    "@unhead/vue": ">=2.0.12",
+    "@vueuse/core": ">=13.5.0",
     "cepheus": ">=3.0.0",
-    "hono": ">=4.8.3",
+    "hono": ">=4.8.5",
     "pinia": ">=3.0.3",
     "seedpods": ">=1.2.0",
     "vue": ">=3.5.17",
-    "zod": ">=3.25.67"
+    "zod": ">=4.0.5"
   },
   "private": false,
   "publishConfig": {

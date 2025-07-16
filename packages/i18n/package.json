@@ -1,5 +1,5 @@
 {
-  "name": "@caslon/service-worker",
+  "name": "@caslon/i18n",
   "version": "0.0.0",
   "author": {
     "name": "escapace",
@@ -45,6 +45,18 @@
           "default": "./lib/node/index.js"
         }
       }
+    },
+    "./browser": {
+      "import": {
+        "types": "./lib/types/browser.d.ts",
+        "default": "./lib/browser/browser.js"
+      }
+    },
+    "./node": {
+      "import": {
+        "types": "./lib/types/node.d.ts",
+        "default": "./lib/node/node.js"
+      }
     }
   },
   "files": [
@@ -52,15 +64,21 @@
     "lib/node",
     "lib/types"
   ],
-  "homepage": "https://github.com/escapace/caslon/tree/trunk/packages/service-worker#readme",
+  "homepage": "https://github.com/escapace/caslon/tree/trunk/packages/cepheus#readme",
   "license": "MPL-2.0",
   "peerDependencies": {
     "@caslon/utilities": "workspace:*",
-    "@escapace/env": ">=0.1.0",
-    "@vueuse/core": ">=13.5.0",
+    "@escapace/accept-language-parser": ">=2.0.0",
+    "@escapace/canonicalize": ">=0.1.2",
+    "@pangram/font-loader": ">=2.3.1",
+    "@pinia/colada": ">=0.17.1",
+    "@unhead/vue": ">=2.0.12",
+    "fast-equals": ">=5.2.2",
+    "hono": ">=4.8.5",
     "pinia": ">=3.0.3",
+    "seedpods": ">=1.2.0",
     "vue": ">=3.5.17",
-    "workbox-window": ">=7.3.0"
+    "zod": ">=4.0.5"
   },
   "private": false,
   "publishConfig": {

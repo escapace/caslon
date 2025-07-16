@@ -9,10 +9,10 @@
   "devDependencies": {
     "@caslon/utopia": "workspace:*",
     "@ls-lint/ls-lint": "2.3.1",
-    "@types/node": "24.0.7",
+    "@types/node": "24.0.14",
     "@vitest/coverage-v8": "3.2.4",
-    "eslint": "9.30.0",
-    "eslint-config-escapace": "5.7.1",
+    "eslint": "9.31.0",
+    "eslint-config-escapace": "5.8.0",
     "esroll": "0.4.5",
     "prettier": "3.6.2",
     "prettier-config-escapace": "1.2.1",
@@ -21,7 +21,7 @@
     "tsx": "4.20.3",
     "typescript": "5.8.3",
     "vitest": "3.2.4",
-    "zx": "8.5.4"
+    "zx": "8.7.0"
   },
   "engines": {
     "pnpm": ">=10.10.0"
