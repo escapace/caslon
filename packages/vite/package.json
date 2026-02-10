@@ -19,7 +19,7 @@
     "eslint": "9.31.0",
     "eslint-config-escapace": "5.9.2",
     "esroll": "0.4.5",
-    "lodash-es": "4.17.21",
+    "lodash-es": "4.17.23",
     "prettier": "3.6.2",
     "prettier-config-escapace": "1.2.1",
     "syncpack": "13.0.4",
