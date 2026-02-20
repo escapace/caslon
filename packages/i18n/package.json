@@ -15,7 +15,7 @@
     "esroll": "0.4.5",
     "jsdom": "26.1.0",
     "prettier": "3.6.2",
-    "prettier-config-escapace": "1.2.1",
+    "prettier-config-escapace": "1.2.2",
     "syncpack": "13.0.4",
     "tsx": "4.20.3",
     "typescript": "5.9.3",
@@ -62,7 +62,7 @@
   "license": "MPL-2.0",
   "peerDependencies": {
     "@caslon/utilities": "workspace:*",
-    "@escapace/accept-language-parser": ">=2.0.0",
+    "@escapace/accept-language-parser": ">=2.1.2",
     "@escapace/canonicalize": ">=0.1.2",
     "@pangram/font-loader": ">=2.3.1",
     "@pinia/colada": ">=0.17.1",
