@@ -8,7 +8,7 @@
   "bugs": "https://github.com/escapace/caslon/issues",
   "devDependencies": {
     "@ls-lint/ls-lint": "2.3.1",
-    "@types/node": "24.0.14",
+    "@types/node": "24.10.13",
     "@vitest/coverage-v8": "3.2.4",
     "eslint": "9.31.0",
     "eslint-config-escapace": "5.9.2",
