@@ -156,8 +156,8 @@ importers:
         specifier: '>=3.0.0'
         version: 3.0.0
       hono:
-        specifier: '>=4.12.16'
-        version: 4.12.18
+        specifier: '>=4.12.21'
+        version: 4.12.23
       pinia:
         specifier: '>=3.0.3'
         version: 3.0.3(typescript@5.9.3)(vue@3.5.17(typescript@5.9.3))
@@ -235,8 +235,8 @@ importers:
         specifier: '>=5.2.2'
         version: 5.2.2
       hono:
-        specifier: '>=4.12.16'
-        version: 4.12.18
+        specifier: '>=4.12.21'
+        version: 4.12.23
       pinia:
         specifier: '>=3.0.3'
         version: 3.0.3(typescript@5.9.3)(vue@3.5.17(typescript@5.9.3))
@@ -1428,6 +1428,7 @@ packages:
   '@snyk/github-codeowners@1.1.0':
     resolution: {integrity: sha512-lGFf08pbkEac0NYgVf4hdANpAgApRjNByLXB+WBip3qj1iendOIyAwP2GKkKbQMNVy2r1xxDf0ssfWscoiC+Vw==}
     engines: {node: '>=8.10'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     hasBin: true
 
   '@standard-schema/spec@1.0.0':
@@ -2629,8 +2630,8 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
-  hono@4.12.18:
-    resolution: {integrity: sha512-RWzP96k/yv0PQfyXnWjs6zot20TqfpfsNXhOnev8d1InAxubW93L11/oNUc3tQqn2G0bSdAOBpX+2uDFHV7kdQ==}
+  hono@4.12.23:
+    resolution: {integrity: sha512-eIaZ9qDgu7XV0pxOCrg7/WhnQ6Ivm22UcxhXx/A3dcbqbbYgBEkc6e/J/s7j2tS96zoB0S9VBdLwQNCWwUo4LA==}
     engines: {node: '>=16.9.0'}
 
   hookable@5.5.3:
@@ -6537,7 +6538,7 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hono@4.12.18: {}
+  hono@4.12.23: {}
 
   hookable@5.5.3: {}
 
