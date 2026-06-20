@@ -151,7 +151,7 @@ importers:
         version: 2.0.12(vue@3.5.17(typescript@5.9.3))
       '@vueuse/core':
         specifier: '>=13.5.0'
-        version: 13.5.0(vue@3.5.17(typescript@5.9.3))
+        version: 14.3.0(vue@3.5.17(typescript@5.9.3))
       cepheus:
         specifier: '>=3.0.0'
         version: 3.0.0
@@ -302,7 +302,7 @@ importers:
         version: 0.1.0
       '@vueuse/core':
         specifier: '>=13.5.0'
-        version: 13.5.0(vue@3.5.17(typescript@5.9.3))
+        version: 14.3.0(vue@3.5.17(typescript@5.9.3))
       pinia:
         specifier: '>=3.0.3'
         version: 3.0.3(typescript@5.9.3)(vue@3.5.17(typescript@5.9.3))
@@ -1756,16 +1756,16 @@ packages:
   '@vue/shared@3.5.17':
     resolution: {integrity: sha512-CabR+UN630VnsJO/jHWYBC1YVXyMq94KKp6iF5MQgZJs5I8cmjw6oVMO1oDbtBkENSHSSn/UadWlW/OAgdmKrg==}
 
-  '@vueuse/core@13.5.0':
-    resolution: {integrity: sha512-wV7z0eUpifKmvmN78UBZX8T7lMW53Nrk6JP5+6hbzrB9+cJ3jr//hUlhl9TZO/03bUkMK6gGkQpqOPWoabr72g==}
+  '@vueuse/core@14.3.0':
+    resolution: {integrity: sha512-aHfz47g0ZhMtTVHmIzMVpJy8ePhhOy68GY5bv110+5DVtZ+W7BsOx+m61UNQqfrWyPztIHIanWa3E2tib3NFIw==}
     peerDependencies:
       vue: ^3.5.0
 
-  '@vueuse/metadata@13.5.0':
-    resolution: {integrity: sha512-euhItU3b0SqXxSy8u1XHxUCdQ8M++bsRs+TYhOLDU/OykS7KvJnyIFfep0XM5WjIFry9uAPlVSjmVHiqeshmkw==}
+  '@vueuse/metadata@14.3.0':
+    resolution: {integrity: sha512-BwxmbAzwAVF50+MW57GXOUEV61nFBGnlBvrTqj49PqWJu3uw7hdu72ztXeZ33RdZtDY6kO+bfCAE1PCn88Tktw==}
 
-  '@vueuse/shared@13.5.0':
-    resolution: {integrity: sha512-K7GrQIxJ/ANtucxIXbQlUHdB0TPA8c+q5i+zbrjxuhJCnJ9GtBg75sBSnvmLSxHKPg2Yo8w62PWksl9kwH0Q8g==}
+  '@vueuse/shared@14.3.0':
+    resolution: {integrity: sha512-bZpge9eSXwa4ToSiqJ7j6KRwhAsneMFoSz3LMWKQDkqimm3D/tbFlrklrs/IOqC8tEcYmXQZJ6N0UrjhBirVCg==}
     peerDependencies:
       vue: ^3.5.0
 
@@ -5274,16 +5274,16 @@ snapshots:
 
   '@vue/shared@3.5.17': {}
 
-  '@vueuse/core@13.5.0(vue@3.5.17(typescript@5.9.3))':
+  '@vueuse/core@14.3.0(vue@3.5.17(typescript@5.9.3))':
     dependencies:
       '@types/web-bluetooth': 0.0.21
-      '@vueuse/metadata': 13.5.0
-      '@vueuse/shared': 13.5.0(vue@3.5.17(typescript@5.9.3))
+      '@vueuse/metadata': 14.3.0
+      '@vueuse/shared': 14.3.0(vue@3.5.17(typescript@5.9.3))
       vue: 3.5.17(typescript@5.9.3)
 
-  '@vueuse/metadata@13.5.0': {}
+  '@vueuse/metadata@14.3.0': {}
 
-  '@vueuse/shared@13.5.0(vue@3.5.17(typescript@5.9.3))':
+  '@vueuse/shared@14.3.0(vue@3.5.17(typescript@5.9.3))':
     dependencies:
       vue: 3.5.17(typescript@5.9.3)
 
