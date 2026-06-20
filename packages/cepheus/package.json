@@ -68,7 +68,7 @@
     "@escapace/env": ">=0.1.0",
     "@pinia/colada": ">=0.17.1",
     "@unhead/vue": ">=2.0.12",
-    "@vueuse/core": ">=13.5.0",
+    "@vueuse/core": ">=14.3.0",
     "cepheus": ">=3.0.0",
     "hono": ">=4.12.25",
     "pinia": ">=3.0.3",
