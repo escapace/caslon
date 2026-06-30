@@ -7,8 +7,8 @@
   },
   "bugs": "https://github.com/escapace/caslon/issues",
   "devDependencies": {
-    "@commitlint/cli": "19.7.1",
-    "@commitlint/config-conventional": "19.7.1",
+    "@commitlint/cli": "21.1.0",
+    "@commitlint/config-conventional": "21.1.0",
     "@escapace/pnpm-pack": "0.7.0",
     "@ls-lint/ls-lint": "2.2.3",
     "eslint": "9.19.0",
