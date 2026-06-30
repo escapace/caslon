@@ -8,14 +8,14 @@
   "bugs": "https://github.com/escapace/caslon/issues",
   "devDependencies": {
     "@ls-lint/ls-lint": "2.3.1",
-    "@vitest/coverage-v8": "3.2.4",
-    "eslint": "9.31.0",
+    "@vitest/coverage-v8": "3.2.6",
+    "eslint": "9.39.4",
     "eslint-config-escapace": "5.13.0",
     "esroll": "0.4.5",
-    "prettier": "3.6.2",
+    "prettier": "3.8.4",
     "prettier-config-escapace": "1.2.2",
     "syncpack": "13.0.4",
-    "tsx": "4.20.3",
+    "tsx": "4.22.4",
     "typescript": "5.9.3",
     "vitest": "3.2.6"
   },
@@ -37,7 +37,7 @@
   "module": "lib/neutral/index.js",
   "peerDependencies": {
     "@escapace/env": ">=0.1.0",
-    "vue": ">=3.5.17"
+    "vue": ">=3.5.38"
   },
   "private": false,
   "publishConfig": {
