@@ -168,8 +168,8 @@ importers:
         specifier: '>=3.5.17'
         version: 3.5.17(typescript@5.9.3)
       zod:
-        specifier: '>=4.0.5'
-        version: 4.0.5
+        specifier: '>=4.6.7'
+        version: 4.6.7
     devDependencies:
       '@ls-lint/ls-lint':
         specifier: 2.3.1
@@ -247,8 +247,8 @@ importers:
         specifier: '>=3.5.17'
         version: 3.5.17(typescript@5.9.3)
       zod:
-        specifier: '>=4.0.5'
-        version: 4.0.5
+        specifier: '>=4.6.7'
+        version: 4.6.7
     devDependencies:
       '@ls-lint/ls-lint':
         specifier: 2.3.1
@@ -4066,8 +4066,8 @@ packages:
   zod@3.25.67:
     resolution: {integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==}
 
-  zod@4.0.5:
-    resolution: {integrity: sha512-/5UuuRPStvHXu7RS+gmvRf4NXrNxpSllGwDnCBcJZtQsKrviYXm54yDGV2KYNLT5kq0lHGcl7lqWJLgSaG+tgA==}
+  zod@4.6.7:
+    resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
 
   zx@8.8.5:
     resolution: {integrity: sha512-SNgDF5L0gfN7FwVOdEFguY3orU5AkfFZm9B5YSHog/UDHv+lvmd82ZAsOenOkQixigwH2+yyH198AwNdKhj+RA==}
@@ -8103,6 +8103,6 @@ snapshots:
 
   zod@3.25.67: {}
 
-  zod@4.0.5: {}
+  zod@4.6.7: {}
 
   zx@8.8.5: {}
